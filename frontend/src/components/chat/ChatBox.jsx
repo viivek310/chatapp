@@ -53,12 +53,12 @@ function ChatBox() {
                 Authorization: `Bearer ${user.token}`
             }
         })
-       } catch (error) {
-            localStorage.removeItem("userInfo")
-       }
-
         const msgs = await res.json()
         setMessages(msgs)
+    } catch (error) {
+        localStorage.removeItem("userInfo")
+    }
+
         socket?.emit("join chat", selectedChat._id)
     }
 
