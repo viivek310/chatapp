@@ -57,15 +57,15 @@ function Navbar({ open }) {
   return (
     <nav className='w-full bg-slate-900 bg-opacity-80 backdrop-blur-[2px] text-white shadow-md h-12 flex items-center justify-between px-5 select-none'>
       <SideNav open={sideNavOpen} setOpen={() => setSideNavOpen(false)} />
-      <div onClick={() => setSideNavOpen(true)} className="search w-28 h-7 bg-white text-black border border-black rounded-md flex items-center cursor-pointer ">
+      <div onClick={() => setSideNavOpen(true)} className="search px-2 sm:px-0 sm:w-28 h-7 bg-white text-black border border-black rounded-md flex items-center cursor-pointer text-2xl sm:text-base">
         <CiSearch />
-        <span>Search user</span>
+        <span className='hidden sm:block'>Search user</span>
       </div>
 
       <h1 className='text-3xl font-bold cursor-pointer select-none'>V-chat</h1>
 
 
-      <div className='flex gap-5 items-center'>
+      <div className='flex gap-2 lg:gap-5 items-center'>
 
         <div className="flex gap-2">
 
@@ -111,7 +111,7 @@ function Navbar({ open }) {
           <div className="profile-img h-10 w-10 rounded-full overflow-hidden">
             <img className='w-full h-full object-cover' src={user?.pic} />
           </div>
-          <div className="username mx-2">
+          <div className="username mx-2 hidden sm:block">
             {user?.name}
           </div>
           <div>{count}</div>

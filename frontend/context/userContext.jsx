@@ -10,6 +10,7 @@ export const UserProvider = ({children})=>{
     const [api , setApi] = useState()
     const [count,setCount] = useState(1)
     const [notification,setNotification] = useState([])
+    const [chatOpen, setChatOpen] = useState(true)
     const navigate = useNavigate();
 
    useEffect(()=>{
@@ -26,7 +27,7 @@ export const UserProvider = ({children})=>{
         }
     },[setUser,navigate])
     return (
-        <UserContext.Provider value={{user,setUser,selectedChat,setSelectedChat,chats,setChats,api,notification,setNotification}}>
+        <UserContext.Provider value={{user,setUser,selectedChat,setSelectedChat,chats,setChats,api,notification,setNotification,chatOpen,setChatOpen}}>
             {children}
         </UserContext.Provider>
     )

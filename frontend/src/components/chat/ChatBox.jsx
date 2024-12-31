@@ -21,6 +21,7 @@ function ChatBox() {
     const [typing, setTyping] = useState()
     const [isTyping, setIsTyping] = useState()
     const scrollcontainer = useRef()
+    const {chatOpen,setChatOpen} = useUser()
 
 
     useEffect(() => {
@@ -57,7 +58,7 @@ function ChatBox() {
             const msgs = await res.json()
             setMessages(msgs)
         } catch (error) {
-            localStorage.removeItem("userInfo")
+            // localStorage.removeItem("userInfo")
         }
 
         socket?.emit("join chat", selectedChat._id)
@@ -148,11 +149,11 @@ function ChatBox() {
         }, 5000);
     }
     return (
-        <div className="chatbox flex-[3] bg-blue-50">
+        <div className={`chatbox ${chatOpen&&"hidden"} lg:block flex-[3]  bg-blue-50`}>
             {selectedChat ? (
                 <div className='bg-slate-200 h-full flex flex-col'>
                     <div className="chatheader px-10 py-2 w-full bg-slate-300 h-[10%] flex items-center text-2xl">
-                        <span className='mr-8 cursor-pointer'><IoMdArrowRoundBack /></span>
+                        <span onClick={()=>setChatOpen(true)} className='mr-8 cursor-pointer'><IoMdArrowRoundBack /></span>
                         {selectedChat?.isGroupChat ? (
                             <div className="group-header flex justify-between items-center flex-1 ">
                                 <div className="name">

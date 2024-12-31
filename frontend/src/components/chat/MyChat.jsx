@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 function MyChat() {
     const { user, chats, setChats, setSelectedChat, selectedChat,api } = useUser()
     const [groupModal, setGroupModal] = useState(false  )
+    const {chatOpen,setChatOpen} = useUser()
     const navigate = useNavigate()
 
 
@@ -23,16 +24,16 @@ function MyChat() {
             })
 
             const chatData = await res.json()
-            if(res.status!==200){
-                console.log("not authorised")
-                localStorage.removeItem("userInfo")
-                navigate("/")
-            }
+            // if(res.status!==200){
+            //     console.log("not authorised")
+            //     localStorage.removeItem("userInfo")
+            //     navigate("/")
+            // }
          
             setChats(chatData)
         } catch (error) {
-            localStorage.removeItem("userInfo")
-            navigate("/")
+            // localStorage.removeItem("userInfo")
+            // navigate("/")
             console.log(error)
             toast.error("Error fetching chats", {
                 position: "bottom-center",
@@ -51,8 +52,13 @@ function MyChat() {
     useEffect(() => {
         fetchChats();
     }, [setChats, selectedChat])
+
+    const chatControl = (chat)=>{
+       setSelectedChat(chat)
+       setChatOpen(false)
+    }
     return (
-        <div className="mychats flex-1 bg-zinc-100 h-full flex flex-col text-sm">
+        <div className={`mychats flex-1 ${!chatOpen&&"hidden"} lg:block bg-zinc-100 h-full flex flex-col text-sm`}>
             <div className='flex justify-between items-center p-5'>
                 <h3 className=' font-bold text-xl text-slate-700'>My chats</h3>
                 <div className="addbtn">
@@ -65,7 +71,7 @@ function MyChat() {
                         No chats to show
                     </div>}
                 {chats?.map(chat => (
-                    <div onClick={()=>setSelectedChat(chat)} key={chat._id} className='bg-gray-500 hover:bg-cyan-500 transition-colors duration-300 text-white rounded-md p-2 cursor-pointer'>
+                    <div onClick={()=>chatControl(chat)} key={chat._id} className='bg-gray-500 hover:bg-cyan-500 transition-colors duration-300 text-white rounded-md p-2 cursor-pointer'>
                         <div>
                             {chat.isGroupChat ? chat?.chatName : getSender(user, chat?.users)}
                         </div>
