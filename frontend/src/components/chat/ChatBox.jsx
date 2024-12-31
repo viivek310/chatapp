@@ -11,7 +11,7 @@ const ENDPOINT = "http://localhost:5000/"
 var socket, selectedChatCompare
 
 function ChatBox() {
-    const { selectedChat, setSelectedChat, user, api, chats ,notification, setNotification} = useUser()
+    const { selectedChat, setSelectedChat, user, api, chats, notification, setNotification } = useUser()
     const [updateChat, setUpdateChat] = useState(false)
     const [messages, setMessages] = useState([])
     const [loading, setLoading] = useState(false)
@@ -40,24 +40,24 @@ function ChatBox() {
     // useEffect(() => {
     //   if(newMessage==="")
     //     socket.emit("stop typing",selectedChat._id)
-    
+
     // }, [newMessage])
-    
+
 
     const fetchMessages = async () => {
 
         if (!selectedChat) return
-       try {
-        const res = await fetch(`${api}api/message/${selectedChat?._id}`, {
-            headers: {
-                Authorization: `Bearer ${user.token}`
-            }
-        })
-        const msgs = await res.json()
-        setMessages(msgs)
-    } catch (error) {
-        localStorage.removeItem("userInfo")
-    }
+        try {
+            const res = await fetch(`${api}api/message/${selectedChat?._id}`, {
+                headers: {
+                    Authorization: `Bearer ${user.token}`
+                }
+            })
+            const msgs = await res.json()
+            setMessages(msgs)
+        } catch (error) {
+            localStorage.removeItem("userInfo")
+        }
 
         socket?.emit("join chat", selectedChat._id)
     }
@@ -70,8 +70,8 @@ function ChatBox() {
     useEffect(() => {
         const handleMessageReceived = (msg) => {
             if (!selectedChatCompare || selectedChatCompare._id !== msg.chat._id) {
-                if(!notification.includes(msg)){
-                    setNotification(n=>[msg,...n])  
+                if (!notification.includes(msg)) {
+                    setNotification(n => [msg, ...n])
                 }
             } else {
                 setMessages(msgs => [...msgs, msg])
@@ -82,13 +82,14 @@ function ChatBox() {
         return () => {
             socket.off("message received", handleMessageReceived)
         }
-    }, [])
+    }, [socket,selectedChat])
 
 
     const sendText = async (e) => {
         e.preventDefault()
         // console.log(newMessage)
         socket.emit("stop typing", selectedChat._id)
+        socket.emit("new message", newmsg)
         if (!newMessage) return
         try {
             const res = await fetch(`${api}api/message`, {
@@ -105,7 +106,7 @@ function ChatBox() {
             })
 
             const newmsg = await res.json()
-            socket.emit("new message", newmsg)
+
             setNewMessage("")
             setMessages(msg => [...msg, newmsg])
         } catch (error) {
@@ -167,8 +168,8 @@ function ChatBox() {
                         ) : (
                             <div className='flex items-center gap-3'>
                                 <div className="profile h-10 aspect-square rounded-full overflow-hidden">
-                                   
-                                    <img className='w-full h-full object-cover' src={getSenderInfo(user,selectedChat?.users).pic || "/images/image.png"} alt="" />
+
+                                    <img className='w-full h-full object-cover' src={getSenderInfo(user, selectedChat?.users).pic || "/images/image.png"} alt="" />
                                 </div>
                                 <div className="name">{getSender(user, selectedChat?.users)}</div>
                             </div>
@@ -186,9 +187,9 @@ function ChatBox() {
 
                                 </div>
                             ))}
-                            {isTyping &&   <div className={``}>
-                                    <div className={`py-2 px-4  w-fit rounded-full rounded-bl-none bg-green-300`}>Typing..</div>
-                                </div>}
+                            {isTyping && <div className={``}>
+                                <div className={`py-2 px-4  w-fit rounded-full rounded-bl-none bg-green-300`}>Typing..</div>
+                            </div>}
                         </div>
                         <form className='h-[10%] flex' onSubmit={sendText}>
                             <input onChange={typinghandler} value={newMessage || ""} className='flex-1 rounded-lg border-2 border-blue-500 px-3' type="text" name="" id="" />
