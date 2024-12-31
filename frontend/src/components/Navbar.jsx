@@ -109,7 +109,7 @@ function Navbar({ open }) {
 
         <div ref={parentDiv} onClick={() => setContextMenuOpen(prev => !prev)} className="profile flex items-center bg-white text-black px-3 rounded-md cursor-pointer relative">
           <div className="profile-img h-10 w-10 rounded-full overflow-hidden">
-            <img className='w-full h-full object-cover' src={user?.pic} />
+            <img className='w-full h-full object-cover' src={user?.pic|| "/images/image.png"} />
           </div>
           <div className="username mx-2 hidden sm:block">
             {user?.name}
