@@ -7,7 +7,7 @@ import GroupUpdateModal from '../GroupUpdateModal';
 import { io } from "socket.io-client"
 
 
-const ENDPOINT = "https://v-chat-2y3m.onrender.com:5000"
+const ENDPOINT = "http://localhost:5000/"
 var socket, selectedChatCompare
 
 function ChatBox() {
