@@ -31,6 +31,7 @@ function MyChat() {
          
             setChats(chatData)
         } catch (error) {
+            localStorage.removeItem("userInfo")
             console.log(error)
             toast.error("Error fetching chats", {
                 position: "bottom-center",
