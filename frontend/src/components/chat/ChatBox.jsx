@@ -5,6 +5,7 @@ import { IoMdArrowRoundBack } from "react-icons/io";
 import { IoMdMore } from "react-icons/io";
 import GroupUpdateModal from '../GroupUpdateModal';
 import { io } from "socket.io-client"
+import { toast } from 'react-toastify';
 
 
 const ENDPOINT = "http://localhost:5000/"
@@ -111,16 +112,16 @@ function ChatBox() {
             setMessages(msg => [...msg, newmsg])
         } catch (error) {
             localStorage.removeItem("userInfo")
-            toast.error("Error occured while sending chats", {
-                position: "bottom-center",
-                autoClose: 5000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: "dark",
-            });
+            // toast.error("Error occured while sending chats", {
+            //     position: "bottom-center",
+            //     autoClose: 5000,
+            //     hideProgressBar: false,
+            //     closeOnClick: true,
+            //     pauseOnHover: true,
+            //     draggable: true,
+            //     progress: undefined,
+            //     theme: "dark",
+            // });
             setMessages("")
         }
     }
