@@ -1,5 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
-import SideNav from '../components/Navbar'
+import React, { useRef, useState } from 'react'
 import Navbar from '../components/Navbar'
 import { useUser } from '../../context/userContext'
 import MyChat from '../components/chat/MyChat'
@@ -9,9 +8,8 @@ import ChatBox from '../components/chat/ChatBox'
 
 
 const Chat = () => {
-  const { user, api } = useUser()
+  const { user } = useUser()
   const [profileOpen, setProfileOpen] = useState()
-  const profileRef = useRef()
 
 
 
