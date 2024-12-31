@@ -2,8 +2,8 @@ import React, { useRef, useState } from 'react'
 import Navbar from '../components/Navbar'
 import { useUser } from '../../context/userContext'
 import MyChat from '../components/chat/MyChat'
-import Profile from '../components/profile'
 import ChatBox from '../components/chat/ChatBox'
+import Profile from '../components/Profile'
 
 
 
