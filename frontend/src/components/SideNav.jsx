@@ -88,6 +88,7 @@ function SideNav({ open, setOpen }) {
       const data = await res.json()
       setSelectedChat(data[0])
     } catch (error) {
+      localStorage.removeItem("userInfo")
       console.log(error)
     }
   }

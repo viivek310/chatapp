@@ -23,7 +23,7 @@ function MyChat() {
             })
 
             const chatData = await res.json()
-            if(res.status===401){
+            if(res.status!==200){
                 console.log("not authorised")
                 localStorage.removeItem("userInfo")
                 navigate("/")
@@ -32,6 +32,7 @@ function MyChat() {
             setChats(chatData)
         } catch (error) {
             localStorage.removeItem("userInfo")
+            navigate("/")
             console.log(error)
             toast.error("Error fetching chats", {
                 position: "bottom-center",

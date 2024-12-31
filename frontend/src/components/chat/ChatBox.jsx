@@ -47,11 +47,15 @@ function ChatBox() {
     const fetchMessages = async () => {
 
         if (!selectedChat) return
+       try {
         const res = await fetch(`${api}api/message/${selectedChat?._id}`, {
             headers: {
                 Authorization: `Bearer ${user.token}`
             }
         })
+       } catch (error) {
+            localStorage.removeItem("userInfo")
+       }
 
         const msgs = await res.json()
         setMessages(msgs)
@@ -105,6 +109,7 @@ function ChatBox() {
             setNewMessage("")
             setMessages(msg => [...msg, newmsg])
         } catch (error) {
+            localStorage.removeItem("userInfo")
             toast.error("Error occured while sending chats", {
                 position: "bottom-center",
                 autoClose: 5000,
