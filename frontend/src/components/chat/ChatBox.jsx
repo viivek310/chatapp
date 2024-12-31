@@ -90,7 +90,6 @@ function ChatBox() {
         e.preventDefault()
         // console.log(newMessage)
         socket.emit("stop typing", selectedChat._id)
-        // socket.emit("new message", newMessage)
         if (!newMessage) return
         try {
             const res = await fetch(`${api}api/message`, {
@@ -105,9 +104,10 @@ function ChatBox() {
                     chatId: selectedChat._id
                 })
             })
-
+            
             const newmsg = await res.json()
-
+            
+            socket.emit("new message", newmsg)
             setNewMessage("")
             setMessages(msg => [...msg, newmsg])
         } catch (error) {
