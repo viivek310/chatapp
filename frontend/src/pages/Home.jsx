@@ -90,7 +90,7 @@ const Home = () => {
         theme: "dark",
       });
       setLoading(false)
-      console.log("signup failed")
+
       return
     }
     if (errors?.length === 0) {

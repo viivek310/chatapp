@@ -69,7 +69,6 @@ function Profile({ setProfileOpen, data }) {
       console.log(error)
     }
   }
-  console.log(data, user)
   return (
     <div ref={profileRef} className='fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 min-h-[400px] w-[90%] sm:w-[500px] bg-white flex flex-col items-center justify-center p-5 rounded-lg shadow-md cursor-pointer z-20'>
       <div className='flex items-end relative'>
