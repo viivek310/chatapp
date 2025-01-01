@@ -5,8 +5,8 @@ import { postImage } from '../config/util';
 import { useUser } from '../../context/userContext';
 
 function Profile({ setProfileOpen, data }) {
-  const [name,setName] = useState(data.name)
-  const [image,setImage] = useState()
+  const [name,setName] = useState(data?.name)
+  const [image,setImage] = useState(data?.pic)
   const [edit,setEdit] = useState(false)
   const profileRef = useRef()
   const {api,user,setUser} = useUser()
@@ -54,13 +54,14 @@ function Profile({ setProfileOpen, data }) {
       console.log(error)
     }
   }
+  console.log(data,user)
   return (
     <div ref={profileRef} className='fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 min-h-[400px] w-[90%] sm:w-[500px] bg-white flex flex-col items-center justify-center p-5 rounded-lg shadow-md cursor-pointer z-20'>
       <div className='flex items-end relative'>
         <div className="userProfile h-40 aspect-square rounded-full overflow-hidden mb-3">
           <img className='h-full w-full object-cover' src={image || "/images/image.png"} alt="user profile" />
         </div>
-        <button onClick={()=>setEdit(e=>!e)} className={`mb-3 ${edit?"bg-blue-600":"bg-blue-400"} p-2 text-white rounded-full absolute -right-10 bottom-0`}><FiEdit2 /></button>
+        <button onClick={()=>setEdit(e=>!e)} className={`mb-3 ${user!==data&&"hidden"} ${edit?"bg-blue-600":"bg-blue-400"} p-2 text-white rounded-full absolute -right-10 bottom-0`}><FiEdit2 /></button>
       </div>
       <div className={`flex justify-center mb-4 ${!edit&&"hidden"}`}>
         <input onChange={(e)=>handleImage(e.target.files[0])} type="file" />
@@ -70,7 +71,7 @@ function Profile({ setProfileOpen, data }) {
         <input disabled={!edit} className={`text-center ${edit?"border border-black":"border-0"} rounded-md focus:outline-none bg-transparent`} value={name} onChange={(e)=>setName(e.target.value)} type="text" />
       </div>
       <div className="email">
-        Email: {data.email}
+        Email: {data?.email}
       </div>
       <button onClick={editProfile} className={`bg-slate-600 text-white px-5 py-2 my-3 rounded-lg ${!edit&&"hidden"}`}>Submit</button>
 

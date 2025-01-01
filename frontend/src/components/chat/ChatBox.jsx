@@ -11,7 +11,7 @@ import { toast } from 'react-toastify';
 const ENDPOINT = process.env.NODE_ENV==="production"?"https://v-chat-2y3m.onrender.com/":"http://localhost:5000"
 var socket, selectedChatCompare
 
-function ChatBox() {
+function ChatBox({open,setUser}) {
     const { selectedChat, setSelectedChat, user, api, chats, notification, setNotification } = useUser()
     const [updateChat, setUpdateChat] = useState(false)
     const [messages, setMessages] = useState([])
@@ -148,6 +148,11 @@ function ChatBox() {
             }
         }, 5000);
     }
+
+    const openProfile = ()=>{
+        setUser(getSenderInfo(user, selectedChat?.users))
+        open()
+    }
     return (
         <div className={`chatbox ${chatOpen&&"hidden"} lg:block flex-[3]  bg-blue-50`}>
             {selectedChat ? (
@@ -169,7 +174,7 @@ function ChatBox() {
 
                         ) : (
                             <div className='flex items-center gap-3'>
-                                <div className="profile h-10 aspect-square rounded-full overflow-hidden">
+                                <div onClick={openProfile} className="profile cursor-pointer h-10 aspect-square rounded-full overflow-hidden">
 
                                     <img className='w-full h-full object-cover' src={getSenderInfo(user, selectedChat?.users).pic || "/images/image.png"} alt="" />
                                 </div>
