@@ -82,3 +82,21 @@ export const searchUsers = asyncHandler(async(req,res)=>{
     const users = await User.find(keyword).find({_id:{$ne:req.user._id}})
     res.send(users)
 })
+
+export const updateProfile = asyncHandler(async(req,res)=>{
+    try {
+        const {name,pic} = req.body
+
+        const up = {
+            ...(name&&{name}),
+            ...(pic&&{pic})
+        }
+        const update = await User.updateOne({_id:req.user._id},{$set:up})
+        
+        res.send({message:"profile updated successfully"})
+    } catch (error) {
+        res.status(400)
+        console.log(error)
+        throw new Error(error)
+    }
+})

@@ -8,7 +8,7 @@ import { io } from "socket.io-client"
 import { toast } from 'react-toastify';
 
 
-const ENDPOINT = "https://v-chat-2y3m.onrender.com/"
+const ENDPOINT = process.env.NODE_ENV==="production"?"https://v-chat-2y3m.onrender.com/":"http://localhost:5000"
 var socket, selectedChatCompare
 
 function ChatBox() {

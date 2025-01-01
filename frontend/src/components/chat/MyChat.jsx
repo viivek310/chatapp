@@ -75,7 +75,6 @@ function MyChat() {
                         <div>
                             {chat.isGroupChat ? chat?.chatName : getSender(user, chat?.users)}
                         </div>
-                        {console.log(chat?.latestMessage)}
                         <div>{chat?.latestMessage&&`${chat?.latestMessage?.sender?.name}: ${chat?.latestMessage?.content}`}</div>
                         {/* {chat.users[0].name} */}
                     </div>

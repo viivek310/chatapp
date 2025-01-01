@@ -5,6 +5,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/userContext';
+import { postImage } from '../config/util';
 
 const Home = () => {
   const [login, setlogin] = useState(true);
@@ -135,23 +136,7 @@ const Home = () => {
 
   }
 
-  const postImage = async (img) => {
-    setLoading(true)
-    const cloud = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-    if (img.type === "image/jpeg" || img.type === "image/png") {
-      const data = new FormData()
-      data.append("file", img)
-      data.append("upload_preset", "chat-app")
-      data.append("cloud_name", cloud)
-      const ftch = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/image/upload`, {
-        method: "POST",
-        body: data,
-      })
-      const url = await ftch.json()
-      setSignupData(prev => ({ ...prev, "pic": url.secure_url }))
-    }
-    setLoading(false)
-  }
+  
 
 
   useEffect(() => {
@@ -160,6 +145,11 @@ const Home = () => {
       navigate("/chat")
     }
   }, [navigate,user])
+
+  const handleImage = async(img)=>{
+    const url = await postImage(img)
+    setSignupData(prev => ({ ...prev, "pic": url}))
+  }
 
   return (
 
@@ -222,7 +212,7 @@ const Home = () => {
 
             <div className='text-start'>
               <label className='text-base '>Upload Your Profile image</label>
-              <input type='file' className='peer focus:outline-none bg-transparent border-b-2 border-white w-full text-base ' name='profile' value={signupData.profile} placeholder='Upload Your profile image' accept='image/*' onChange={(e) => setSignupData(postImage(e.target.files[0]))} />
+              <input type='file' className='peer focus:outline-none bg-transparent border-b-2 border-white w-full text-base ' name='profile' value={signupData.profile} placeholder='Upload Your profile image' accept='image/*' onChange={(e) => handleImage(e.target.files[0])} />
             </div>
 
 

@@ -19,12 +19,17 @@ export const UserProvider = ({children})=>{
    },[])
 
     useEffect(()=>{
+       try {
         const data = JSON.parse(localStorage.getItem("userInfo"))
         setUser(data)
-
+        
         if(!data){
             navigate("/")
         }
+       } catch (error) {
+        localStorage.removeItem("userInfo")
+       }
+
     },[setUser,navigate])
     return (
         <UserContext.Provider value={{user,setUser,selectedChat,setSelectedChat,chats,setChats,api,notification,setNotification,chatOpen,setChatOpen}}>

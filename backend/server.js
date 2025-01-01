@@ -55,7 +55,7 @@ const server = app.listen(port,()=>{
 const io = new Server(server,{
     pingTimeout: 60000,
     cors:{
-        origin: `https://v-chat-2y3m.onrender.com`
+        origin: `${process.env.NODE_ENV==="production"?"https://v-chat-2y3m.onrender.com":"http://localhost:5173"}`
     }
 })
 
