@@ -90,18 +90,6 @@ function Profile({ setProfileOpen, data }) {
       <button onClick={editProfile} className={`bg-slate-600 text-white px-5 py-2 my-3 rounded-lg ${!edit && "hidden"}`}>{loading ? <div className='h-5 w-5 rounded-[50%] border border-white border-t-black animate-spin'></div> : "Submit"}</button>
 
       <button onClick={setProfileOpen} className='cross absolute top-3 right-3 text-xl '><RxCross2 /></button>
-      <span className='text-sm'><ToastContainer
-              position="bottom-center"
-              autoClose={5000}
-              hideProgressBar={false}
-              newestOnTop={false}
-              closeOnClick
-              rtl={false}
-              pauseOnFocusLoss
-              draggable
-              pauseOnHover
-              theme="dark"
-            /></span>
     </div>
   )
 }

@@ -66,6 +66,7 @@ function MyChat() {
                 </div>
             </div>
 
+
             <div className="chats space-y-3 overflow-y-auto flex-1 px-5">
                 {chats.length===0&&<div className='text-center'>
                         No chats to show
