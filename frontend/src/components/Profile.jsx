@@ -9,13 +9,15 @@ import 'react-toastify/dist/ReactToastify.css';
 function Profile({ setProfileOpen, data }) {
   const [name, setName] = useState(data?.name)
   const [image, setImage] = useState(data?.pic)
-  const [loading, setLoading] = useState()
+  const [loading, setLoading] = useState(false)
   const [edit, setEdit] = useState(false)
   const profileRef = useRef()
   const { api, user, setUser } = useUser()
   const handleClickOutside = (event) => {
-    if (profileRef?.current && !profileRef?.current.contains(event.target)) {
-      setProfileOpen(false)
+    if (!loading) {
+      if (profileRef?.current && !profileRef?.current.contains(event.target)) {
+        setProfileOpen(false)
+      }
     }
   };
 
@@ -28,10 +30,13 @@ function Profile({ setProfileOpen, data }) {
   }, []);
 
   const handleImage = async (img) => {
+    setLoading(true)
     const url = await postImage(img)
     setImage(url)
     setUser(u => ({ ...user, pic: url }))
     localStorage.setItem("userInfo", JSON.stringify({ ...user, pic: url }))
+    setLoading(false)
+    editProfile()
   }
 
   const editProfile = async () => {
@@ -53,16 +58,16 @@ function Profile({ setProfileOpen, data }) {
         localStorage.setItem("userInfo", JSON.stringify({ ...user, name }))
         setUser(u => ({ ...u, name }))
         toast.success('profile updated', {
-                  position: "bottom-center",
-                  autoClose: 5000,
-                  hideProgressBar: false,
-                  closeOnClick: true,
-                  pauseOnHover: true,
-                  draggable: true,
-                  progress: undefined,
-                  theme: "dark",
-                });
-          setEdit(false)
+          position: "bottom-center",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "dark",
+        });
+        setEdit(false)
       }
       // console.log(res)
     } catch (error) {
