@@ -24,16 +24,16 @@ function MyChat() {
             })
 
             const chatData = await res.json()
-            // if(res.status!==200){
-            //     console.log("not authorised")
-            //     localStorage.removeItem("userInfo")
-            //     navigate("/")
-            // }
+            if(res.status!==200){
+                console.log("not authorised")
+                localStorage.removeItem("userInfo")
+                navigate("/")
+            }
          
             setChats(chatData)
         } catch (error) {
-            // localStorage.removeItem("userInfo")
-            // navigate("/")
+            localStorage.removeItem("userInfo")
+            navigate("/")
             console.log(error)
             toast.error("Error fetching chats", {
                 position: "bottom-center",

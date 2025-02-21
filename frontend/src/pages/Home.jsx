@@ -51,25 +51,39 @@ const Home = () => {
         body: JSON.stringify(loginData)
       })
       const res = await ftch.json()
+
       if (ftch.ok) {
         localStorage.setItem("userInfo", JSON.stringify(res))
         navigate("/chat")
-        setLoginLoading(false)
-      } else {
+        console.log(ftch)
+      }else{
+        console.log(res)
+        toast.error(res?.message, {
+            position: "bottom-center",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "dark",
+          });
         setLoginLoading(false)
       }
+      setLoginLoading(false)
     } catch (error) {
       console.log(error)
-      toast.error(error.message, {
-        position: "bottom-center",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "dark",
-      });
+      // console.log(error)
+      // toast.error(error.message, {
+      //   position: "bottom-center",
+      //   autoClose: 5000,
+      //   hideProgressBar: false,
+      //   closeOnClick: true,
+      //   pauseOnHover: true,
+      //   draggable: true,
+      //   progress: undefined,
+      //   theme: "dark",
+      // });
       setLoginLoading(false)
     }
     // navigate('/chat');
