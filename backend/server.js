@@ -52,12 +52,15 @@ const server = app.listen(port,()=>{
     console.log("App running on 5000 port")
 })
 
-const io = new Server(server,{
+const io = new Server(server, {
     pingTimeout: 60000,
-    cors:{
-        origin: `${process.env.NODE_ENV==="production"?"https://v-chat-2y3m.onrender.com":"http://localhost:5173"}`
+    cors: {
+        origin: process.env.NODE_ENV === "production"
+            ? ["https://v-chat-2y3m.onrender.com", "https://vv-chat.netlify.app"]
+            : "http://localhost:5173"
     }
-})
+});
+
 
 io.on("connection",(socket)=>{
     // console.log("connected to socket io")
