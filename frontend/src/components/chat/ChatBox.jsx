@@ -8,7 +8,8 @@ import { io } from "socket.io-client"
 import { toast } from 'react-toastify';
 
 
-const ENDPOINT = process.env.NODE_ENV==="production"?"https://v-chat-2y3m.onrender.com/":"http://localhost:5000"
+const ENDPOINT = process.env.NODE_ENV==="production"?"https://chatapp-production-6dcb.up.railway.app/":"http://localhost:5000"
+
 var socket, selectedChatCompare
 
 function ChatBox({open,setUser}) {
@@ -58,7 +59,7 @@ function ChatBox({open,setUser}) {
             const msgs = await res.json()
             setMessages(msgs)
         } catch (error) {
-            // localStorage.removeItem("userInfo")
+            localStorage.removeItem("userInfo")
         }
 
         socket?.emit("join chat", selectedChat._id)
