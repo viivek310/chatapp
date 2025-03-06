@@ -94,7 +94,7 @@ function ChatBox({open,setUser}) {
         // console.log(newMessage)
         socket.emit("stop typing", selectedChat._id)
         if (!newMessage) return
-        socket.emit("new message", newmsg)
+        socket.emit("new message", newMessage)
         setNewMessage("")
         setMessages(msg => [...msg, newmsg])
         try {
