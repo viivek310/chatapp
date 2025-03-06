@@ -8,6 +8,7 @@ import { io } from "socket.io-client"
 import { toast } from 'react-toastify';
 
 
+// const ENDPOINT = process.env.NODE_ENV==="production"?"https://chatapp-production-6dcb.up.railway.app/":"http://localhost:5000"
 const ENDPOINT = process.env.NODE_ENV==="production"?"https://chatapp-production-6dcb.up.railway.app/":"http://localhost:5000"
 
 var socket, selectedChatCompare
@@ -185,7 +186,7 @@ function ChatBox({open,setUser}) {
                     </div>
 
                     <div className='flex flex-col h-[90%]'>
-                        <div ref={scrollcontainer} className="messages  h-[90%] space-y-3 flex flex-col w-full py-3 px-3 overflow-y-scroll scrollbar-thin scrollbar-corner-transparent scrollbar-track-transparent scrollbar-thumb-blue-400">
+                        <div ref={scrollcontainer} className="messages  h-[90%] space-y-3 flex flex-col justify-end w-full py-3 px-3 overflow-y-scroll scrollbar-thin scrollbar-corner-transparent scrollbar-track-transparent scrollbar-thumb-blue-400">
                             {messages?.map((m, i) => (
                                 <div key={m._id} className={`${m?.sender?._id === user?._id && " self-end"} flex items-end`}>
                                     {(m?.sender?._id !== user?._id && (messages[i + 1]?.sender?._id === user?._id || m === messages[messages.length - 1])) ? <div className=' rounded-full h-8 aspect-square overflow-hidden'>
