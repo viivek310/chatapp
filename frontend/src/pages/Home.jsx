@@ -36,7 +36,7 @@ const Home = () => {
   }
   const getSignupData = (e) => {
     setSignupData(prev => ({ ...prev, [e.target.name]: e.target.value }))
-    setErrors(validatePassword(signupData?.password))
+    
   }
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -52,11 +52,11 @@ const Home = () => {
       })
       const res = await ftch.json()
 
-      if (ftch.ok) {
-        localStorage.setItem("userInfo", JSON.stringify(res))
+      if (res.success) {
+        localStorage.setItem("userInfo", JSON.stringify(res.data))
         navigate("/chat")
-        console.log(ftch)
       }else{
+        localStorage.removeItem("userInfo")
         console.log(res)
         toast.error(res?.message, {
             position: "bottom-center",
@@ -91,6 +91,7 @@ const Home = () => {
 
   const handleSignup = async (e) => {
     e.preventDefault()
+    setErrors(validatePassword(signupData?.password))
     setLoading(true)
     if (signupData.password !== signupData.confirm) {
       toast.error("password do not match", {
@@ -117,7 +118,8 @@ const Home = () => {
         body: JSON.stringify(signupData)
       })
       const response = await ftch.json()
-      if (ftch.ok) {
+      console.log(response)
+      if (response.success) {
         toast.success('User registered successfully ', {
           position: "bottom-center",
           autoClose: 5000,
@@ -128,9 +130,10 @@ const Home = () => {
           progress: undefined,
           theme: "dark",
         });
-        localStorage.setItem("userInfo", JSON.stringify(response))
+        localStorage.setItem("userInfo", JSON.stringify(response.data))
         navigate('/chat');
       } else {
+        localStorage.removeItem("userInfo")
         toast.error(response.message, {
           position: "bottom-center",
           autoClose: 5000,

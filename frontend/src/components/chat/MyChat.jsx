@@ -9,9 +9,9 @@ import { useNavigate } from 'react-router-dom';
 
 
 function MyChat() {
-    const { user, chats, setChats, setSelectedChat, selectedChat,api } = useUser()
-    const [groupModal, setGroupModal] = useState(false  )
-    const {chatOpen,setChatOpen} = useUser()
+    const { user, chats, setChats, setSelectedChat, selectedChat, api } = useUser()
+    const [groupModal, setGroupModal] = useState(false)
+    const { chatOpen, setChatOpen } = useUser()
     const navigate = useNavigate()
 
 
@@ -23,28 +23,20 @@ function MyChat() {
                 }
             })
 
-            const chatData = await res.json()
-            if(res.status!==200){
+            const { data, success, message, error } = await res.json()
+            // if(res.status!==200){
+            // }
+
+            if (success) {
+                setChats(data)
+            } else if (error === "jwt") {
                 console.log("not authorised")
                 localStorage.removeItem("userInfo")
                 navigate("/")
+
             }
-         
-            setChats(chatData)
         } catch (error) {
-            localStorage.removeItem("userInfo")
-            navigate("/")
             console.log(error)
-            toast.error("Error fetching chats", {
-                position: "bottom-center",
-                autoClose: 5000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: "dark",
-            });
         }
     }
 
@@ -53,36 +45,36 @@ function MyChat() {
         fetchChats();
     }, [setChats, selectedChat])
 
-    const chatControl = (chat)=>{
-       setSelectedChat(chat)
-       setChatOpen(false)
+    const chatControl = (chat) => {
+        setSelectedChat(chat)
+        setChatOpen(false)
     }
     return (
-        <div className={`mychats flex-1 ${!chatOpen&&"hidden"} lg:block bg-zinc-100 h-full flex flex-col text-sm`}>
+        <div className={`mychats flex-1 ${!chatOpen && "hidden"} lg:block bg-zinc-100 h-full flex flex-col text-sm`}>
             <div className='flex justify-between items-center p-5'>
                 <h3 className=' font-bold text-xl text-slate-700'>My chats</h3>
                 <div className="addbtn">
-                    <button onClick={()=>setGroupModal(true)} className='bg-slate-300  p-2 rounded-md flex gap-3 items-center shadow-md'>New Group Chat <span><FaPlus /></span></button>
+                    <button onClick={() => setGroupModal(true)} className='bg-slate-300  p-2 rounded-md flex gap-3 items-center shadow-md'>New Group Chat <span><FaPlus /></span></button>
                 </div>
             </div>
 
 
             <div className="chats space-y-3 overflow-y-auto flex-1 px-5">
-                {chats.length===0&&<div className='text-center'>
-                        No chats to show
-                    </div>}
+                {chats.length === 0 && <div className='text-center'>
+                    No chats to show
+                </div>}
                 {chats?.map(chat => (
-                    <div onClick={()=>chatControl(chat)} key={chat._id} className='bg-gray-500 hover:bg-cyan-500 transition-colors duration-300 text-white rounded-md p-2 cursor-pointer'>
+                    <div onClick={() => chatControl(chat)} key={chat._id} className='bg-gray-500 hover:bg-cyan-500 transition-colors duration-300 text-white rounded-md p-2 cursor-pointer'>
                         <div>
                             {chat.isGroupChat ? chat?.chatName : getSender(user, chat?.users)}
                         </div>
-                        <div>{chat?.latestMessage&&`${chat?.latestMessage?.sender?.name}: ${chat?.latestMessage?.content}`}</div>
+                        <div>{chat?.latestMessage && `${chat?.latestMessage?.sender?.name}: ${chat?.latestMessage?.content}`}</div>
                         {/* {chat.users[0].name} */}
                     </div>
                 ))}
             </div>
 
-            {groupModal&&<GroupModal groupModal={()=>setGroupModal(false)}/>}
+            {groupModal && <GroupModal groupModal={() => setGroupModal(false)} />}
 
             <ToastContainer
                 position="bottom-center"

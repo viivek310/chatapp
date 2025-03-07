@@ -6,8 +6,10 @@ export const registerUser = asyncHandler(async (req, res) => {
     const { name, email, password, pic } = req.body;
 
     if (!name || !email || !password) {
-        res.status(400);
-        throw new Error("Please enter all the fields");
+        res.json({
+            success: false,
+            message: "Enter all fields"
+        })
     }
 
 
@@ -15,8 +17,10 @@ export const registerUser = asyncHandler(async (req, res) => {
     const userExists = await User.findOne({ email })
 
     if (userExists) {
-        res.status(400)
-        throw new Error("User already exists");
+        res.json({
+            success: false,
+            message: "User already exists"
+        })
     }
 
 
@@ -30,15 +34,21 @@ export const registerUser = asyncHandler(async (req, res) => {
 
     if (user) {
         res.status(201).json({
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            pic: user.pic,
-            token: generateToken(user._id)
+            success: true,
+            message: "User created successfully",
+            data: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                pic: user.pic,
+                token: generateToken(user._id)
+            }
         })
     } else {
-        res.status(400);
-        throw new Error("Failed to create user");
+        res.json({
+            success: false,
+            message: "Failed to create user"
+        })
 
     }
 
@@ -55,53 +65,80 @@ export const authUser = asyncHandler(async (req, res) => {
 
         if (user && await user.matchPassword(password)) {
             res.json({
-                _id: user._id,
-                name: user.name,
-                email: user.email,
-                pic: user.pic,
-                token: generateToken(user._id)
+                success: true,
+                message: "login successful",
+                data: {
+                    _id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    pic: user.pic,
+                    token: generateToken(user._id)
+                }
             })
         } else {
-            res.status(400)
-            throw new Error("Incorrect Credentials");
+            res.json({
+                success:false,
+                message:"Incorrect Credentials"
+            })
         }
     } catch (error) {
         console.log(error)
-        res.status(400)
-        throw new Error("Incorrect Credentials");
+        res.json({
+            success:false,
+            message:"Incorrect Credentials"
+        })
     }
 })
 
 export const searchUsers = asyncHandler(async (req, res) => {
-    // if(req.query.search===" ")
-    //     res.send("Enter user name")
+    const keyword = req.query.search
+        ? {
+              $or: [
+                  { name: { $regex: req.query.search, $options: "i" } },
+                  { email: { $regex: req.query.search, $options: "i" } }
+              ]
+          }
+        : {};
 
-    // console.log(req.query.search)
-    const keyword = req.query.search ? {
-        $or: [
-            { name: { $regex: req.query.search, $options: "i" } },
-            { email: { $regex: req.query.search, $options: "i" } }
-        ]
-    } : {};
+    const users = await User.find(keyword).find({ _id: { $ne: req.user._id } });
 
-    const users = await User.find(keyword).find({ _id: { $ne: req.user._id } })
-    res.send(users)
-})
+    res.json({
+        success: true,
+        message: "Users fetched successfully",
+        data: users
+    });
+});
 
 export const updateProfile = asyncHandler(async (req, res) => {
     try {
-        const { name, pic } = req.body
+        const { name, pic } = req.body;
 
         const up = {
             ...(name && { name }),
             ...(pic && { pic })
-        }
-        const update = await User.updateOne({ _id: req.user._id }, { $set: up })
+        };
 
-        res.send({ message: "profile updated successfully" })
+        const update = await User.updateOne({ _id: req.user._id }, { $set: up });
+
+        const updatedUser = await User.findById(req.user._id);
+
+        res.json({
+            success: true,
+            message: "Profile updated successfully",
+            data: {
+                _id: updatedUser._id,
+                name: updatedUser.name,
+                email: updatedUser.email,
+                pic: updatedUser.pic,
+                token: generateToken(updatedUser._id)
+            }
+        });
     } catch (error) {
-        res.status(400)
-        console.log(error)
-        throw new Error(error)
+        console.log(error);
+        res.status(400).json({
+            success: false,
+            message: "Profile update failed",
+            error: error.message
+        });
     }
-})
+});

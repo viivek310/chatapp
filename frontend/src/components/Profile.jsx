@@ -36,11 +36,11 @@ function Profile({ setProfileOpen, data }) {
     setUser(u => ({ ...user, pic: url }))
     localStorage.setItem("userInfo", JSON.stringify({ ...user, pic: url }))
     setLoading(false)
-    editProfile()
+    await editProfile(url)
   }
 
-  const editProfile = async () => {
-
+  const editProfile = async (img=image) => {
+    console.log(image)
     try {
       const res = await fetch(`${api}api/user/update`, {
         method: "POST",
@@ -51,11 +51,12 @@ function Profile({ setProfileOpen, data }) {
         },
         body: JSON.stringify({
           name,
-          pic: image
+          pic: img
         })
       })
-      if (res.ok) {
-        localStorage.setItem("userInfo", JSON.stringify({ ...user, name }))
+      const {data,success,error} = await res.json()
+      if (success) {
+        localStorage.setItem("userInfo", JSON.stringify({ ...user, name,pic: img }))
         setUser(u => ({ ...u, name }))
         toast.success('profile updated', {
           position: "bottom-center",
@@ -68,6 +69,8 @@ function Profile({ setProfileOpen, data }) {
           theme: "dark",
         });
         setEdit(false)
+      }else if(error==="jwt"){
+        localStorage.removeItem("userInfo")
       }
       // console.log(res)
     } catch (error) {

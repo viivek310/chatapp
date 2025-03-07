@@ -8,39 +8,41 @@ import { IoClose } from "react-icons/io5";
 
 function GroupModal({ groupModal }) {
     const [groupChatName, setGroupChatName] = useState("")
-    const { user, api, setChats} = useUser()
+    const { user, api, setChats } = useUser()
     const [searchResult, setSearchResult] = useState([])
     const [selectedUsers, setSelectedUsers] = useState([])
 
     const handleSearch = async (query) => {
-        if (!query||query.trim()==="") {
+        if (!query || query.trim() === "") {
             setSearchResult([])
             return
         }
-        try {
-            const res = await fetch(`${api}api/user?search=${query.trim()}`, {
-                headers: {
-                    Authorization: `Bearer ${user.token}`
-                }
-            })
-            const data = await res.json()
+
+        const res = await fetch(`${api}api/user?search=${query.trim()}`, {
+            headers: {
+                Authorization: `Bearer ${user.token}`
+            }
+        })
+        const { data, success } = await res.json()
+        if (success) {
             setSearchResult(data)
-        } catch (error) {
+        } else {
             toast.error("Error searching user", {
-                  position: "bottom-center",
-                  autoClose: 5000,
-                  hideProgressBar: false,
-                  closeOnClick: true,
-                  pauseOnHover: true,
-                  draggable: true,
-                  progress: undefined,
-                  theme: "dark",
-                });
+                position: "bottom-center",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "dark",
+            });
         }
+
     }
 
     const handleGroup = (user) => {
-        const exit = selectedUsers.find(us=>us._id===user._id)
+        const exit = selectedUsers.find(us => us._id === user._id)
         if (exit) {
             toast.error('User already selected', {
                 position: "bottom-center",
@@ -51,24 +53,24 @@ function GroupModal({ groupModal }) {
                 draggable: true,
                 progress: undefined,
                 theme: "dark",
-                }); 
+            });
             return
         }
 
-        setSelectedUsers(us=>[...us,user])
+        setSelectedUsers(us => [...us, user])
     }
 
-    const delteUser = (user)=>{
-        setSelectedUsers(us=>us.filter(u=>u._id!==user._id))
+    const delteUser = (user) => {
+        setSelectedUsers(us => us.filter(u => u._id !== user._id))
     }
 
-    const doNothing = (e)=>{
+    const doNothing = (e) => {
         e.preventDefault()
     }
 
-    const submitGroup = async()=>{
+    const submitGroup = async () => {
         // console.log()
-        if(!groupChatName||selectedUsers.length===0){
+        if (!groupChatName || selectedUsers.length === 0) {
             toast.error('Select all the fields', {
                 position: "bottom-center",
                 autoClose: 5000,
@@ -78,27 +80,28 @@ function GroupModal({ groupModal }) {
                 draggable: true,
                 progress: undefined,
                 theme: "dark",
-                }); 
+            });
             return
         }
 
-        try {
-            const res = await fetch(`${api}api/chat/group`,{
-                method: "POST",
-                headers:{
-                    "Content-Type":"application/json",
-                    "Accept":"application/json",
-                    Authorization: `Bearer ${user.token}`
-                },
-                body: JSON.stringify({
-                    name: groupChatName,
-                    users: JSON.stringify(selectedUsers.map(u=>u._id))
-                })
-            })
 
-            const data = await res.json()
+        const res = await fetch(`${api}api/chat/group`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                Authorization: `Bearer ${user.token}`
+            },
+            body: JSON.stringify({
+                name: groupChatName,
+                users: JSON.stringify(selectedUsers.map(u => u._id))
+            })
+        })
+
+        const { data, success, message, error } = await res.json()
+        if (success) {
             groupModal()
-            setChats(c=>[data,...c])
+            setChats(c => [data, ...c])
 
             toast.success(`Group created`, {
                 position: "bottom-center",
@@ -109,9 +112,12 @@ function GroupModal({ groupModal }) {
                 draggable: true,
                 progress: undefined,
                 theme: "dark",
-                toastId:1,
-                });
-        } catch (error) {
+                toastId: 1,
+            });
+        } else {
+            if(error==="jwt"){
+                localStorage.removeItem("userInfo");
+            }
             console.log(error)
             toast.error('Failed to create chat', {
                 position: "bottom-center",
@@ -122,13 +128,14 @@ function GroupModal({ groupModal }) {
                 draggable: true,
                 progress: undefined,
                 theme: "dark",
-                }); 
+            });
         }
+
     }
 
     return (
         <div className='h-screen w-sc reen bg fixed inset-0 bg-slate-300 bg-opacity-30 flex justify-center select-none pt-20'>
-            <div className='h-fit w-[30vw] transition-height delay-1000 bg-white relative px-10 py-5 rounded-lg'>
+            <div className='h-fit w-[90vw] md:w-[30vw] transition-height delay-1000 bg-white relative px-10 py-5 rounded-lg'>
                 <button onClick={groupModal} className='cross absolute top-2 right-2 text-xl '><RxCross2 /></button>
                 <div className="heading text-center text-3xl font-bold mb-5">Creat Group Chat</div>
                 <form onSubmit={doNothing} className='space-y-5'>
@@ -140,13 +147,13 @@ function GroupModal({ groupModal }) {
                     </div>
 
                     <div className='flex flex-wrap gap-3'>
-                        {selectedUsers?.map((user)=>(
-                            <div onClick={()=>delteUser(user)} key={user._id} className='flex gap-1 items-center bg-purple-700 text-white p-1 px-2 rounded-full cursor-pointer'>
+                        {selectedUsers?.map((user) => (
+                            <div onClick={() => delteUser(user)} key={user._id} className='flex gap-1 items-center bg-purple-700 text-white p-1 px-2 rounded-full cursor-pointer'>
                                 <div className="username">
                                     {user.name}
                                 </div>
                                 <span>
-                                <IoClose />
+                                    <IoClose />
                                 </span>
                             </div>
                         ))}

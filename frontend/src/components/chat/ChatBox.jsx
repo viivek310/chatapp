@@ -8,12 +8,12 @@ import { io } from "socket.io-client"
 import { toast } from 'react-toastify';
 
 
-// const ENDPOINT = process.env.NODE_ENV==="production"?"https://chatapp-production-6dcb.up.railway.app/":"http://localhost:5000"
-const ENDPOINT = process.env.NODE_ENV==="production"?"https://chatapp-production-6dcb.up.railway.app/":"http://localhost:5000"
+const ENDPOINT = process.env.NODE_ENV === "production" ? "https://chatapp-production-6dcb.up.railway.app/" : "http://localhost:5000"
+
 
 var socket, selectedChatCompare
 
-function ChatBox({open,setUser}) {
+function ChatBox({ open, setUser }) {
     const { selectedChat, setSelectedChat, user, api, chats, notification, setNotification } = useUser()
     const [updateChat, setUpdateChat] = useState(false)
     const [messages, setMessages] = useState([])
@@ -23,7 +23,7 @@ function ChatBox({open,setUser}) {
     const [typing, setTyping] = useState()
     const [isTyping, setIsTyping] = useState()
     const scrollcontainer = useRef()
-    const {chatOpen,setChatOpen} = useUser()
+    const { chatOpen, setChatOpen } = useUser()
 
 
     useEffect(() => {
@@ -51,17 +51,19 @@ function ChatBox({open,setUser}) {
     const fetchMessages = async () => {
 
         if (!selectedChat) return
-        try {
-            const res = await fetch(`${api}api/message/${selectedChat?._id}`, {
-                headers: {
-                    Authorization: `Bearer ${user.token}`
-                }
-            })
-            const msgs = await res.json()
-            setMessages(msgs)
-        } catch (error) {
+
+        const res = await fetch(`${api}api/message/${selectedChat?._id}`, {
+            headers: {
+                Authorization: `Bearer ${user.token}`
+            }
+        })
+        const { success, data, error } = await res.json()
+        if (success) {
+            setMessages(data)
+        } else if (error === "jwt") {
             localStorage.removeItem("userInfo")
         }
+
 
         socket?.emit("join chat", selectedChat._id)
     }
@@ -86,48 +88,95 @@ function ChatBox({open,setUser}) {
         return () => {
             socket.off("message received", handleMessageReceived)
         }
-    }, [socket,selectedChat])
+    }, [socket, selectedChat])
 
+
+    // const sendText = async (e) => {
+    //     e.preventDefault()
+    //     // console.log(newMessage)
+    //     socket.emit("stop typing", selectedChat._id)
+    //     if (!newMessage) return
+    //     socket.emit("new message", newMessage)
+    //     setNewMessage("")
+    //     setMessages(msg => [...msg, newmsg])
+    //     try {
+    //         const res = await fetch(`${api}api/message`, {
+    //             headers: {
+    //                 "Content-type": "application/json",
+    //                 "Accept": "application/json",
+    //                 Authorization: `Bearer ${user.token}`
+    //             },
+    //             method: "POST",
+    //             body: JSON.stringify({
+    //                 content: newMessage,
+    //                 chatId: selectedChat._id
+    //             })
+    //         })
+
+    //         const newmsg = await res.json()
+
+    //     } catch (error) {
+    //         localStorage.removeItem("userInfo")
+    //         // toast.error("Error occured while sending chats", {
+    //         //     position: "bottom-center",
+    //         //     autoClose: 5000,
+    //         //     hideProgressBar: false,
+    //         //     closeOnClick: true,
+    //         //     pauseOnHover: true,
+    //         //     draggable: true,
+    //         //     progress: undefined,
+    //         //     theme: "dark",
+    //         // });
+    //         setMessages("")
+    //     }
+    // }
 
     const sendText = async (e) => {
         e.preventDefault()
         // console.log(newMessage)
         socket.emit("stop typing", selectedChat._id)
         if (!newMessage) return
-        socket.emit("new message", newMessage)
-        setNewMessage("")
-        setMessages(msg => [...msg, newmsg])
-        try {
-            const res = await fetch(`${api}api/message`, {
-                headers: {
-                    "Content-type": "application/json",
-                    "Accept": "application/json",
-                    Authorization: `Bearer ${user.token}`
-                },
-                method: "POST",
-                body: JSON.stringify({
-                    content: newMessage,
-                    chatId: selectedChat._id
-                })
+
+
+
+
+        const res = await fetch(`${api}api/message`, {
+            headers: {
+                "Content-type": "application/json",
+                "Accept": "application/json",
+                Authorization: `Bearer ${user.token}`
+            },
+            method: "POST",
+            body: JSON.stringify({
+                content: newMessage,
+                chatId: selectedChat._id
             })
-            
-            const newmsg = await res.json()
-            
-        } catch (error) {
-            localStorage.removeItem("userInfo")
-            // toast.error("Error occured while sending chats", {
-            //     position: "bottom-center",
-            //     autoClose: 5000,
-            //     hideProgressBar: false,
-            //     closeOnClick: true,
-            //     pauseOnHover: true,
-            //     draggable: true,
-            //     progress: undefined,
-            //     theme: "dark",
-            // });
-            setMessages("")
+        })
+
+        const { data, success, error, message } = await res.json()
+
+        if (success) {
+            socket.emit("new message", data)
+            setNewMessage("")
+            setMessages(msg => [...msg, data])
+        } else {
+            if(error==="jwt"){
+                localStorage.removeItem("userInfo")
+            }
+            toast.error("Error occured while sending chats", {
+                position: "bottom-center",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "dark",
+            });
         }
+
     }
+
 
     const typinghandler = (e) => {
         setNewMessage(e.target.value)
@@ -151,16 +200,16 @@ function ChatBox({open,setUser}) {
         }, 5000);
     }
 
-    const openProfile = ()=>{
+    const openProfile = () => {
         setUser(getSenderInfo(user, selectedChat?.users))
         open()
     }
     return (
-        <div className={`chatbox ${chatOpen&&"hidden"} lg:block flex-[3]  bg-blue-50`}>
+        <div className={`chatbox ${chatOpen && "hidden"} lg:block flex-[3]  bg-blue-50`}>
             {selectedChat ? (
                 <div className='bg-slate-200 h-full flex flex-col'>
                     <div className="chatheader px-10 py-2 w-full bg-slate-300 h-[10%] flex items-center text-2xl">
-                        <span onClick={()=>setChatOpen(true)} className='mr-8 cursor-pointer'><IoMdArrowRoundBack /></span>
+                        <span onClick={() => setChatOpen(true)} className='mr-8 cursor-pointer'><IoMdArrowRoundBack /></span>
                         {selectedChat?.isGroupChat ? (
                             <div className="group-header flex justify-between items-center flex-1 ">
                                 <div className="name">
