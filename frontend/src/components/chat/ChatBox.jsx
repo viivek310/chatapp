@@ -130,6 +130,10 @@ function ChatBox({ open, setUser }) {
     //         setMessages("")
     //     }
     // }
+    
+    // socket.emit("new message", newmsg)
+    // setNewMessage("")
+    // setMessages(msg => [...msg, newmsg])
 
     const sendText = async (e) => {
         e.preventDefault()
@@ -137,8 +141,8 @@ function ChatBox({ open, setUser }) {
         socket.emit("stop typing", selectedChat._id)
         if (!newMessage) return
 
-        socket.emit("new message", {sender:user,content:newMessage,chatId:selectedChat?._id})
-        setMessages(msg => [...msg, {sender:user,content:newMessage,chatId:selectedChat?._id}])
+        setMessages(msg => [...msg, {sender:user,content:newMessage,chat:selectedChat,_id:selectedChat._id}])
+        socket.emit("new message", {sender:user,content:newMessage,chat:selectedChat,_id:selectedChat._id})
         setNewMessage("")
 
 
@@ -156,7 +160,7 @@ function ChatBox({ open, setUser }) {
         })
 
         const { data, success, error, message } = await res.json()
-
+        console.log(data)
         if (success) {
             // socket.emit("new message", data)
             // setMessages(msg => [...msg, data])
@@ -190,7 +194,7 @@ function ChatBox({ open, setUser }) {
             socket.emit("typing", selectedChat._id)
         }
         let lastTypingTime = new Date().getTime()
-        let timerLength = 3000
+        let timerLength = 1000
 
         setTimeout(() => {
             let timenow1 = new Date().getTime()
@@ -199,7 +203,7 @@ function ChatBox({ open, setUser }) {
                 socket.emit("stop typing", selectedChat._id)
                 setTyping(false)
             }
-        }, 5000);
+        }, 2000);
     }
 
     const openProfile = () => {
