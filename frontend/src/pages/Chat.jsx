@@ -17,7 +17,7 @@ const Chat = () => {
   }, [user])
   
   return (
-    user && <div className={`${profileOpen ? "before:content-[''] before:h-screen before:w-screen before:absolute before:inset-0 before:bg-slate-200 before:bg-opacity-30 before:z-10 relative" : ""} h-[svh] overflow-hidden`}
+    user && <div className={`${profileOpen ? "before:content-[''] before:h-screen before:w-screen before:absolute before:inset-0 before:bg-slate-200 before:bg-opacity-30 before:z-10 relative" : ""} h-[100svh] overflow-hidden`}
     >
       {profileOpen && <Profile setProfileOpen={() => setProfileOpen(false)} data={profileUser} />}
       <Navbar open={() => setProfileOpen(prev => !prev)} />
