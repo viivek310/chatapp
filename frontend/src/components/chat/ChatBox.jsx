@@ -133,12 +133,12 @@ function ChatBox({ open, setUser }) {
 
     const sendText = async (e) => {
         e.preventDefault()
-        // console.log(newMessage)
+        console.log(newMessage)
         socket.emit("stop typing", selectedChat._id)
         if (!newMessage) return
 
-        socket.emit("new message", newMessage)
-        setMessages(msg => [...msg, {sender:user,newMessage,chatId:selectedChat?._id}])
+        socket.emit("new message", {sender:user,content:newMessage,chatId:selectedChat?._id})
+        setMessages(msg => [...msg, {sender:user,content:newMessage,chatId:selectedChat?._id}])
         setNewMessage("")
 
 
