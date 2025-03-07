@@ -137,7 +137,9 @@ function ChatBox({ open, setUser }) {
         socket.emit("stop typing", selectedChat._id)
         if (!newMessage) return
 
-
+        socket.emit("new message", newMessage)
+        setMessages(msg => [...msg, {sender:user,newMessage,chatId:selectedChat?._id}])
+        setNewMessage("")
 
 
         const res = await fetch(`${api}api/message`, {
@@ -156,11 +158,11 @@ function ChatBox({ open, setUser }) {
         const { data, success, error, message } = await res.json()
 
         if (success) {
-            socket.emit("new message", data)
-            setNewMessage("")
-            setMessages(msg => [...msg, data])
+            // socket.emit("new message", data)
+            // setMessages(msg => [...msg, data])
+            // setNewMessage("")
         } else {
-            if(error==="jwt"){
+            if (error === "jwt") {
                 localStorage.removeItem("userInfo")
             }
             toast.error("Error occured while sending chats", {
