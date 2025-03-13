@@ -89,7 +89,7 @@ function SideNav({ open, setOpen }) {
       },
       body: JSON.stringify({ userId })
     })
-    const { data:{data,success} } = await res.json()
+    const { data:{data,success,error} } = await res.json()
     if (success) {
       setSelectedChat(data[0])
     }else if(error==="jwt"){
