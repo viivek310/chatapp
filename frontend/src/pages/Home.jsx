@@ -57,7 +57,6 @@ const Home = () => {
         navigate("/chat")
       }else{
         localStorage.removeItem("userInfo")
-        console.log(res)
         toast.error(res?.message, {
             position: "bottom-center",
             autoClose: 5000,
@@ -73,20 +72,8 @@ const Home = () => {
       setLoginLoading(false)
     } catch (error) {
       console.log(error)
-      // console.log(error)
-      // toast.error(error.message, {
-      //   position: "bottom-center",
-      //   autoClose: 5000,
-      //   hideProgressBar: false,
-      //   closeOnClick: true,
-      //   pauseOnHover: true,
-      //   draggable: true,
-      //   progress: undefined,
-      //   theme: "dark",
-      // });
       setLoginLoading(false)
     }
-    // navigate('/chat');
   }
 
   const handleSignup = async (e) => {
@@ -118,7 +105,6 @@ const Home = () => {
         body: JSON.stringify(signupData)
       })
       const response = await ftch.json()
-      console.log(response)
       if (response.success) {
         toast.success('User registered successfully ', {
           position: "bottom-center",
@@ -158,7 +144,6 @@ const Home = () => {
 
   useEffect(() => {
     if (user) {
-      // console.log(user)
       navigate("/chat")
     }
   }, [navigate,user])

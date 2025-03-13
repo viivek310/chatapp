@@ -137,7 +137,6 @@ function ChatBox({ open, setUser }) {
 
     const sendText = async (e) => {
         e.preventDefault()
-        console.log(newMessage)
         socket.emit("stop typing", selectedChat._id)
         if (!newMessage) return
 
@@ -193,17 +192,21 @@ function ChatBox({ open, setUser }) {
             setTyping(true)
             socket.emit("typing", selectedChat._id)
         }
-        let lastTypingTime = new Date().getTime()
-        let timerLength = 1000
+        // let lastTypingTime = new Date().getTime()
+        // let timerLength = 1000
 
-        setTimeout(() => {
-            let timenow1 = new Date().getTime()
-            let timediff = timenow1 = lastTypingTime
-            if (timediff >= timerLength && typing) {
-                socket.emit("stop typing", selectedChat._id)
-                setTyping(false)
-            }
-        }, 2000);
+        // setTimeout(() => {
+        //     let timenow1 = new Date().getTime()
+        //     let timediff = timenow1 - lastTypingTime
+        //     if (timediff >= timerLength && typing) {
+        //         socket.emit("stop typing", selectedChat._id)
+        //         setTyping(false)
+        //     }
+        // }, 2000);
+        if(newMessage===""){
+            socket.emit("stop typing", selectedChat._id)
+            setTyping(false)
+        }
     }
 
     const openProfile = () => {
