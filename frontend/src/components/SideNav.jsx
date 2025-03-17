@@ -89,9 +89,10 @@ function SideNav({ open, setOpen }) {
       },
       body: JSON.stringify({ userId })
     })
-    const { data:{data,success,error} } = await res.json()
+    const { data, success, error } = await res.json()
     if (success) {
-      setSelectedChat(data[0])
+      console.log(data)
+      setSelectedChat(data)
     }else if(error==="jwt"){
       localStorage.removeItem("userInfo")
     }

@@ -203,7 +203,7 @@ function ChatBox({ open, setUser }) {
         //         setTyping(false)
         //     }
         // }, 2000);
-        if(newMessage===""){
+        if(e.target.value===""){
             socket.emit("stop typing", selectedChat._id)
             setTyping(false)
         }
