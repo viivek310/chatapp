@@ -192,17 +192,17 @@ function ChatBox({ open, setUser }) {
             setTyping(true)
             socket.emit("typing", selectedChat._id)
         }
-        // let lastTypingTime = new Date().getTime()
-        // let timerLength = 1000
+        let lastTypingTime = new Date().getTime()
+        let timerLength = 3000
 
-        // setTimeout(() => {
-        //     let timenow1 = new Date().getTime()
-        //     let timediff = timenow1 - lastTypingTime
-        //     if (timediff >= timerLength && typing) {
-        //         socket.emit("stop typing", selectedChat._id)
-        //         setTyping(false)
-        //     }
-        // }, 2000);
+        setTimeout(() => {
+            let timenow1 = new Date().getTime()
+            let timediff = timenow1 - lastTypingTime
+            if (timediff >= timerLength && typing) {
+                socket.emit("stop typing", selectedChat._id)
+                setTyping(false)
+            }
+        }, 3000);
         if(e.target.value===""){
             socket.emit("stop typing", selectedChat._id)
             setTyping(false)
