@@ -83,7 +83,7 @@ function Profile({ setProfileOpen, data }) {
         <div className="userProfile h-40 aspect-square rounded-full overflow-hidden mb-3">
           <img className='h-full w-full object-cover' src={image || "/images/image.png"} alt="user profile" />
         </div>
-        <button onClick={() => setEdit(e => !e)} className={`mb-3 ${user !== data && "hidden"} ${edit ? "bg-blue-600" : "bg-blue-400"} p-2 text-white rounded-full absolute -right-10 bottom-0`}><FiEdit2 /></button>
+        {user._id===data._id&&<button onClick={() => setEdit(e => !e)} className={`mb-3  ${edit ? "bg-blue-600" : "bg-blue-400"} p-2 text-white rounded-full absolute -right-10 bottom-0`}><FiEdit2 /></button>}
       </div>
       <div className={`flex justify-center mb-4 ${!edit && "hidden"}`}>
         <input onChange={(e) => handleImage(e.target.files[0])} type="file" />

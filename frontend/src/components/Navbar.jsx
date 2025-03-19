@@ -8,7 +8,7 @@ import { Button, Popover } from "flowbite-react";
 
 
 
-function Navbar({ open }) {
+function Navbar({ open, setUser }) {
   const [sideNavOpen, setSideNavOpen] = useState(false)
   const [contextMenuOpen, setContextMenuOpen] = useState(false)
   const { notification,setSelectedChat,setNotification } = useUser()
@@ -52,6 +52,11 @@ function Navbar({ open }) {
   const notificationClick = (n)=>{
     setSelectedChat(n?.chat)
     setNotification(notifications=>notifications.filter(no=>no!==n))
+  }
+
+  const handleProfileClick = ()=>{
+    open()
+    setUser(user)
   }
 
   return (
@@ -122,7 +127,7 @@ function Navbar({ open }) {
 
 
           {contextMenuOpen && <div tabIndex={0} ref={contextMenu} className="contextMenu w-full  bg-red-600 absolute left-0 top-16 rounded-md overflow-hidden text-white">
-            <div onClick={open} className="col1 py-2 text-center bg-neutral-800 border border-b-neutral-500 hover:bg-neutral-700">
+            <div onClick={handleProfileClick} className="col1 py-2 text-center bg-neutral-800 border border-b-neutral-500 hover:bg-neutral-700">
               Profile
             </div>
 
