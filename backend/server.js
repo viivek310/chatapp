@@ -9,6 +9,10 @@ import { messageRouter } from "./routes/messageRoutes.js";
 import { Server } from "socket.io";
 import path from "path"
 import { fileURLToPath } from "url";
+import { messaging } from "./firebase.js";
+import { protect } from "./middleware/authMiddleware.js";
+import { User } from "./models/userModel.js";
+
 
 
 
@@ -25,11 +29,39 @@ app.use("/api/user",userRouter)
 app.use("/api/chat",chatRouter)
 app.use("/api/message",messageRouter)
 
+app.post('/send-notification',protect, async (req, res) => {
+    const { title, body, userId } = req.body; // Expecting device token, title, and body in the 
+
+    const token = await User.findById(userId)
+   
+    if (  !title || !body) {
+      return res.status(400).send('Missing required fields');
+    }
+  
+    const message = {
+      notification: {
+        title: title,
+        body: body,
+      },
+      token: token.fcmToken, // The device token from the React Native app
+    };
+  
+    try {
+      // Send the notification to the device
+      const response = await messaging.send(message);
+      
+      res.status(200).send('Notification sent successfully');
+    } catch (error) {
+      console.error('Error sending notification:', error);
+      res.status(500).send('Failed to send notification');
+    }
+  });
+  
+
 // -----------------------------------------------
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-console.log(process.env.NODE_ENV)
 if(process.env.NODE_ENV==="production"){
     app.use(express.static(path.resolve(__dirname,"../frontend/dist")));
 
