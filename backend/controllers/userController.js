@@ -56,14 +56,15 @@ export const registerUser = asyncHandler(async (req, res) => {
 })
 
 export const authUser = asyncHandler(async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, token } = req.body;
 
     try {
-
+        
         const user = await User.findOne({ email })
         // const tf = await user.matchPassword(password)
-
+        
         if (user && await user.matchPassword(password)) {
+        const updToken = await User.updateOne({email},{$set:{fcmToken:token}})
             res.json({
                 success: true,
                 message: "login successful",

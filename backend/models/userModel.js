@@ -6,6 +6,7 @@ const userModel = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   pic: { type: String,},
+  fcmToken: {type: String}
 }, { timestamps: true });
 
 userModel.methods.matchPassword=async function matchPassword(enteredPassword) {
