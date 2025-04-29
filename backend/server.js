@@ -37,6 +37,10 @@ app.post('/send-notification',protect, async (req, res) => {
     if (  !title || !body) {
       return res.status(400).send('Missing required fields');
     }
+
+    if(!token){
+      return res.send("no fcm token")
+    }
   
     const message = {
       notification: {
@@ -45,7 +49,7 @@ app.post('/send-notification',protect, async (req, res) => {
       },
       android: {
         notification: {
-          icon: 'ic_launcher',  // Custom notification icon (from mipmap)
+          icon: 'ic_notification',  // Custom notification icon (from mipmap)
         },
       },
       token: token.fcmToken,
