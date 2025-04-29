@@ -38,7 +38,7 @@ app.post('/send-notification',protect, async (req, res) => {
       return res.status(400).send('Missing required fields');
     }
 
-    if(!token){
+    if(!token.fcmToken){
       return res.send("no fcm token")
     }
   
