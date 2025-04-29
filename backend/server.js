@@ -1,4 +1,4 @@
-import express from "express";
+import express, { json } from "express";
 import { userRouter } from "./routes/userRoutes.js";
 import { connectDb } from "./connection/connection.js";
 import { configDotenv } from "dotenv";
@@ -55,6 +55,9 @@ app.post('/send-notification',protect, async (req, res) => {
         notification: {
           icon: 'ic_notification',  // Custom notification icon (from mipmap)
         },
+      },
+      data: {
+        userId
       },
       token: token.fcmToken,
     };
