@@ -43,7 +43,12 @@ app.post('/send-notification',protect, async (req, res) => {
         title: title,
         body: body,
       },
-      token: token.fcmToken, // The device token from the React Native app
+      android: {
+        notification: {
+          icon: 'ic_launcher',  // Custom notification icon (from mipmap)
+        },
+      },
+      token: token.fcmToken,
     };
   
     try {
