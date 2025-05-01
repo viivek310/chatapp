@@ -12,6 +12,7 @@ import { fileURLToPath } from "url";
 import { messaging } from "./firebase.js";
 import { protect } from "./middleware/authMiddleware.js";
 import { User } from "./models/userModel.js";
+import { Message } from "./models/messageModel.js";
 
 
 
@@ -30,7 +31,7 @@ app.use("/api/chat",chatRouter)
 app.use("/api/message",messageRouter)
 
 app.post('/send-notification',protect, async (req, res) => {
-    const { title, body, userId } = req.body; // Expecting device token, title, and body in the 
+    const { title, body, userId, chat } = req.body; // Expecting device token, title, and body in the 
 
     const token = await User.findById(userId)
    
@@ -57,7 +58,7 @@ app.post('/send-notification',protect, async (req, res) => {
         },
       },
       data: {
-        userId
+        chat: JSON.stringify(chat)
       },
       token: token.fcmToken,
     };
@@ -132,6 +133,18 @@ io.on("connection",(socket)=>{
             socket.in(user._id).emit("message received",msg)
         })
     })
+
+    // 
+    socket.on('message_seen', async ({ messageId, seenBy }) => {
+      try {
+        await Message.findByIdAndUpdate(messageId, {
+          $addToSet: { seenBy: seenBy }, // prevent duplicates
+        });
+        socket.in(seenBy).emit('message_seen_ack', { messageId, seenBy });
+      } catch (err) {
+        console.error('Error marking message as seen:', err);
+      }
+    });
 
     socket.on("typing",(room)=>socket.in(room).emit("typing"))
     socket.on(("stop typing"),(room=>socket.in(room).emit("stop typing")))
