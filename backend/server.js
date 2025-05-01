@@ -141,7 +141,7 @@ io.on("connection",(socket)=>{
       socket.in(seenBy).emit('message_seen_ack', { messageId, seenBy });
     })
 
-    socket.on('db_updated',({tempId,messageId,chat})=>{
+    socket.on('db_updated',({tempId,messageId,chat,seenBy})=>{
       chat.users.forEach(user => {
         if(user._id===seenBy) return
 
