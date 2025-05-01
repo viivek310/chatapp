@@ -153,14 +153,22 @@ io.on("connection", (socket) => {
   })
 
   socket.on('db_seenmessage', async ({ messageId, seenBy }) => {
-    console.log(messageId,seenBy)
+    console.log('📨 Seen event received:', messageId, seenBy);
+  
+    if (!messageId || !seenBy) {
+      console.warn('⚠️ Invalid payload for db_seenmessage');
+      return;
+    }
+  
     try {
-      await Message.findByIdAndUpdate(messageId, {
-        $addToSet: { seenBy: seenBy }, // prevent duplicates
-      });
-
+      await Message.findByIdAndUpdate(
+        messageId,
+        { $addToSet: { seenBy: seenBy } },
+        { new: true } // optional: return updated doc if you need it
+      );
+      console.log("✅ Message seen status updated in DB");
     } catch (err) {
-      console.error('Error marking message as seen:', err);
+      console.error('❌ Error marking message as seen:', err);
     }
   });
 
