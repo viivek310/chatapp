@@ -134,13 +134,27 @@ io.on("connection",(socket)=>{
         })
     })
 
-    // 
-    socket.on('message_seen', async ({ messageId, seenBy }) => {
+
+
+    //seen feature
+    socket.on("message_seen",({messageId, seenBy})=>{
+      socket.in(seenBy).emit('message_seen_ack', { messageId, seenBy });
+    })
+
+    socket.on('db_updated',({tempId,messageId,chat})=>{
+      chat.users.forEach(user => {
+        if(user._id===msg.sender._id) return
+
+        socket.in(user._id).emit("message_updated_db",{tempId,messageId})
+    })
+    })
+    
+    socket.on('db_seenmessage', async ({ messageId, seenBy }) => {
       try {
         await Message.findByIdAndUpdate(messageId, {
           $addToSet: { seenBy: seenBy }, // prevent duplicates
         });
-        socket.in(seenBy).emit('message_seen_ack', { messageId, seenBy });
+        
       } catch (err) {
         console.error('Error marking message as seen:', err);
       }
