@@ -145,31 +145,40 @@ io.on("connection", (socket) => {
     })
   })
 
-  socket.on('db_updated', ({ tempId, messageId, chat, seenBy }) => {
-    chat.users.forEach(user => {
-      if (user._id === seenBy) return
-      socket.in(user._id).emit("message_updated_db", { tempId, messageId })
-    })
-  })
+  // socket.on('db_updated', ({ tempId, messageId, chat, seenBy }) => {
+  //   chat.users.forEach(user => {
+  //     if (user._id === seenBy) return
+  //     socket.in(user._id).emit("message_updated_db", { tempId, messageId })
+  //   })
+  // })
 
-  socket.on('db_seenmessage', async ({ messageId, seenBy }) => {
+  // socket.on('db_seenmessage', async ({ messageId, seenBy }) => {
   
-    if (!messageId || !seenBy) {
-      console.warn('⚠️ Invalid payload for db_seenmessage');
-      return;
-    }
+  //   if (!messageId || !seenBy) {
+  //     console.warn(' Invalid payload for db_seenmessage');
+  //     return;
+  //   }
   
+  //   try {
+  //     await Message.findByIdAndUpdate(
+  //       messageId,
+  //       { $addToSet: { seenBy: seenBy } },
+  //       { new: true } // optional: return updated doc if you need it
+  //     );
+
+  //   } catch (err) {
+  //     console.error(' Error marking message as seen:', err);
+  //   }
+  // });
+
+  socket.on("seenAllMessages",async({chat,senderId,seenBy})=>{
+    
     try {
-      await Message.findByIdAndUpdate(
-        messageId,
-        { $addToSet: { seenBy: seenBy } },
-        { new: true } // optional: return updated doc if you need it
-      );
-
-    } catch (err) {
-      console.error('❌ Error marking message as seen:', err);
+      await Message.updateMany({sender:senderId,chat},{ $addToSet: { seenBy: seenBy } })
+    } catch (error) {
+      
     }
-  });
+  })
 
   socket.on("typing", (room) => socket.in(room).emit("typing"))
   socket.on(("stop typing"), (room => socket.in(room).emit("stop typing")))
