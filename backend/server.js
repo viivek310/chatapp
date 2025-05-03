@@ -146,7 +146,6 @@ io.on("connection", (socket) => {
   })
 
   socket.on('db_updated', ({ tempId, messageId, chat, seenBy }) => {
-    console.log(tempId,messageId)
     chat.users.forEach(user => {
       if (user._id === seenBy) return
       socket.in(user._id).emit("message_updated_db", { tempId, messageId })
@@ -154,7 +153,6 @@ io.on("connection", (socket) => {
   })
 
   socket.on('db_seenmessage', async ({ messageId, seenBy }) => {
-    console.log('📨 Seen event received:', messageId, seenBy);
   
     if (!messageId || !seenBy) {
       console.warn('⚠️ Invalid payload for db_seenmessage');
@@ -167,7 +165,7 @@ io.on("connection", (socket) => {
         { $addToSet: { seenBy: seenBy } },
         { new: true } // optional: return updated doc if you need it
       );
-      console.log("✅ Message seen status updated in DB");
+
     } catch (err) {
       console.error('❌ Error marking message as seen:', err);
     }
