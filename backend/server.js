@@ -138,12 +138,10 @@ io.on("connection", (socket) => {
 
   //seen feature
   socket.on("message_seen", ({ messageId, seenBy, chat }) => {
-    // console.log(chat)
     chat.users.forEach(user => {
-      if (user._id||user === seenBy) return
-      const userId = user._id||user
-      console.log(userId)
-      socket.in(userId).emit('message_seen_ack', { messageId, seenBy })
+      if (user._id === seenBy) return
+      console.log(user._id)
+      socket.in(user._id).emit('message_seen_ack', { messageId, seenBy })
     })
   })
 
