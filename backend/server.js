@@ -145,6 +145,14 @@ io.on("connection", (socket) => {
     })
   })
 
+  socket.on("last message seen",({chat,seenBy})=>{
+    chat.users.forEach(user => {
+      if (user._id === seenBy) return
+      console.log(user._id)
+      socket.in(user._id).emit('lastmsg seen ack', { seenBy })
+    })
+  })
+
   // socket.on('db_updated', ({ tempId, messageId, chat, seenBy }) => {
   //   chat.users.forEach(user => {
   //     if (user._id === seenBy) return
@@ -174,7 +182,7 @@ io.on("connection", (socket) => {
   socket.on("seenAllMessages",async({chat,senderId,seenBy})=>{
     
     try {
-      await Message.updateMany({sender:senderId,chat},{ $addToSet: { seenBy: seenBy } })
+      await Message.updateMany({sender:senderId,chat,seenBy:{$ne: seenBy}},{ $addToSet: { seenBy: seenBy } })
     } catch (error) {
       
     }
