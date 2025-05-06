@@ -143,7 +143,6 @@ io.on("connection", (socket) => {
   socket.on("message_seen", ({ messageId, seenBy, chat }) => {
     chat.users.forEach(user => {
       if (user._id === seenBy) return
-      console.log(user._id)
       socket.in(user._id).emit('message_seen_ack', { messageId, seenBy })
     })
   })
@@ -151,7 +150,6 @@ io.on("connection", (socket) => {
   socket.on("last message seen",({chat,seenBy})=>{
     chat.users.forEach(user => {
       if (user._id === seenBy) return
-      console.log(user._id)
       socket.in(user._id).emit('lastmsg seen ack', { seenBy })
     })
   })
