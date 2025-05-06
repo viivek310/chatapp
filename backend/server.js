@@ -134,7 +134,7 @@ io.on("connection", (socket) => {
   //   })
   // })
   socket.on("new message", (msg)=>{
-    socket.in(msg.chat._id).emit("message receive",msg)
+    socket.in(msg.chat._id).emit("message received",msg)
   })
 
 
