@@ -122,16 +122,19 @@ io.on("connection", (socket) => {
     // console.log("user joined room",room)
   })
 
-  socket.on("new message", (msg) => {
-    const chat = msg.chat
+  // socket.on("new message", (msg) => {
+  //   const chat = msg.chat
 
-    if (!chat?.users) return
+  //   if (!chat?.users) return
 
-    chat.users.forEach(user => {
-      if (user._id === msg.sender._id) return
+  //   chat.users.forEach(user => {
+  //     if (user._id === msg.sender._id) return
 
-      socket.in(user._id).emit("message received", msg)
-    })
+  //     socket.in(user._id).emit("message received", msg)
+  //   })
+  // })
+  socket.on("new message", (msg)=>{
+    socket.in(msg.chat._id).emit("message receive",msg)
   })
 
 
