@@ -94,12 +94,20 @@ export const createGroupChat = asyncHandler(async (req, res) => {
         });
     }
 
-    let users = JSON.parse(req.body.users);
-
-    if (users.length < 2) {
+    let users;
+    try {
+        users = typeof req.body.users === "string" ? JSON.parse(req.body.users) : req.body.users;
+    } catch (e) {
         return res.status(400).json({
             success: false,
-            message: "At least 3 users are required to create a group chat",
+            message: "Invalid users format",
+        });
+    }
+
+    if (!Array.isArray(users) || users.length < 2) {
+        return res.status(400).json({
+            success: false,
+            message: "At least 2 other users are required to create a group chat",
         });
     }
 

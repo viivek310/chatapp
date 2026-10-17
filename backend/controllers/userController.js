@@ -6,34 +6,33 @@ export const registerUser = asyncHandler(async (req, res) => {
     const { name, email, password, pic } = req.body;
 
     if (!name || !email || !password) {
-        res.json({
+        return res.status(400).json({
             success: false,
-            message: "Enter all fields"
-        })
+            message: "Please enter all required fields",
+        });
     }
 
-
-
-    const userExists = await User.findOne({ email })
+    const normalizedEmail = email.toLowerCase().trim();
+    const userExists = await User.findOne({ email: normalizedEmail });
 
     if (userExists) {
-        res.json({
+        return res.status(400).json({
             success: false,
-            message: "User already exists"
-        })
+            message: "User with this email already exists",
+        });
     }
 
-
     const user = new User({
-        name,
-        email,
+        name: name.trim(),
+        email: normalizedEmail,
         password,
         ...(pic && { pic }),
-    })
-    await user.save()
+    });
+    
+    await user.save();
 
     if (user) {
-        res.status(201).json({
+        return res.status(201).json({
             success: true,
             message: "User created successfully",
             data: {
@@ -41,72 +40,81 @@ export const registerUser = asyncHandler(async (req, res) => {
                 name: user.name,
                 email: user.email,
                 pic: user.pic,
-                token: generateToken(user._id)
-            }
-        })
+                token: generateToken(user._id),
+            },
+        });
     } else {
-        res.json({
+        return res.status(500).json({
             success: false,
-            message: "Failed to create user"
-        })
-
+            message: "Failed to create user account",
+        });
     }
-
-
-})
+});
 
 export const authUser = asyncHandler(async (req, res) => {
     const { email, password, token } = req.body;
 
+    if (!email || !password) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide both email and password",
+        });
+    }
+
     try {
-        
-        const user = await User.findOne({ email })
-        // const tf = await user.matchPassword(password)
-        
-        if (user && await user.matchPassword(password)) {
-        const updToken = await User.updateOne({email},{$set:{fcmToken:token}})
-            res.json({
+        const normalizedEmail = email.toLowerCase().trim();
+        const user = await User.findOne({ email: normalizedEmail });
+
+        if (user && (await user.matchPassword(password))) {
+            if (token) {
+                await User.updateOne({ _id: user._id }, { $set: { fcmToken: token } });
+            }
+
+            return res.status(200).json({
                 success: true,
-                message: "login successful",
+                message: "Login successful",
                 data: {
                     _id: user._id,
                     name: user.name,
                     email: user.email,
                     pic: user.pic,
-                    token: generateToken(user._id)
-                }
-            })
+                    token: generateToken(user._id),
+                },
+            });
         } else {
-            res.json({
-                success:false,
-                message:"Incorrect Credentials"
-            })
+            return res.status(401).json({
+                success: false,
+                message: "Invalid email or password",
+            });
         }
     } catch (error) {
-        console.log(error)
-        res.json({
-            success:false,
-            message:"Incorrect Credentials"
-        })
+        console.error("[Login Error]:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Authentication error",
+            error: error.message,
+        });
     }
-})
+});
 
 export const searchUsers = asyncHandler(async (req, res) => {
     const keyword = req.query.search
         ? {
               $or: [
-                  { name: { $regex: req.query.search, $options: "i" } },
-                  { email: { $regex: req.query.search, $options: "i" } }
-              ]
+                  { name: { $regex: req.query.search.trim(), $options: "i" } },
+                  { email: { $regex: req.query.search.trim(), $options: "i" } },
+              ],
           }
         : {};
 
-    const users = await User.find(keyword).find({ _id: { $ne: req.user._id } });
+    const users = await User.find(keyword)
+        .find({ _id: { $ne: req.user._id } })
+        .select("-password");
 
-    res.json({
+    return res.status(200).json({
         success: true,
         message: "Users fetched successfully",
-        data: users
+        data: users,
     });
 });
 
@@ -115,15 +123,14 @@ export const updateProfile = asyncHandler(async (req, res) => {
         const { name, pic } = req.body;
 
         const up = {
-            ...(name && { name }),
-            ...(pic && { pic })
+            ...(name && { name: name.trim() }),
+            ...(pic && { pic }),
         };
 
-        const update = await User.updateOne({ _id: req.user._id }, { $set: up });
+        await User.updateOne({ _id: req.user._id }, { $set: up });
+        const updatedUser = await User.findById(req.user._id).select("-password");
 
-        const updatedUser = await User.findById(req.user._id);
-
-        res.json({
+        return res.status(200).json({
             success: true,
             message: "Profile updated successfully",
             data: {
@@ -131,15 +138,15 @@ export const updateProfile = asyncHandler(async (req, res) => {
                 name: updatedUser.name,
                 email: updatedUser.email,
                 pic: updatedUser.pic,
-                token: generateToken(updatedUser._id)
-            }
+                token: generateToken(updatedUser._id),
+            },
         });
     } catch (error) {
-        console.log(error);
-        res.status(400).json({
+        console.error("[Profile Update Error]:", error);
+        return res.status(400).json({
             success: false,
             message: "Profile update failed",
-            error: error.message
+            error: error.message,
         });
     }
 });

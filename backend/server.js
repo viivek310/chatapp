@@ -1,4 +1,4 @@
-import express, { json } from "express";
+import express from "express";
 import { userRouter } from "./routes/userRoutes.js";
 import { connectDb } from "./connection/connection.js";
 import { configDotenv } from "dotenv";
@@ -7,193 +7,192 @@ import cors from "cors";
 import { chatRouter } from "./routes/chatRoutes.js";
 import { messageRouter } from "./routes/messageRoutes.js";
 import { Server } from "socket.io";
-import path from "path"
+import path from "path";
 import { fileURLToPath } from "url";
 import { messaging } from "./firebase.js";
 import { protect } from "./middleware/authMiddleware.js";
 import { User } from "./models/userModel.js";
 import { Message } from "./models/messageModel.js";
 
+configDotenv();
+connectDb();
 
+const app = express();
 
+const clientOrigin = process.env.CLIENT_URL || "http://localhost:5173";
 
-configDotenv()
-connectDb()
-
-
-const app = express()
-app.use(cors())
-
-app.use(express.json())
-
-app.use("/api/user", userRouter)
-app.use("/api/chat", chatRouter)
-app.use("/api/message", messageRouter)
-
-app.post('/send-notification', protect, async (req, res) => {
-  const { title, body, userId, chat } = req.body; // Expecting device token, title, and body in the 
-
-  const token = await User.findById(userId)
-
-  if (!title || !body) {
-    return res.status(400).send('Missing required fields');
-  }
-
-  if (!token) {
-    return res.send("no user found")
-  }
-
-  if (!token?.fcmToken) {
-    return res.send("no fcm token")
-  }
-
-  const message = {
-    notification: {
-      title: title,
-      body: body,
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, server-to-server) or matching clientOrigin / localhost
+      if (
+        !origin ||
+        origin === clientOrigin ||
+        origin.startsWith("http://localhost:") ||
+        origin.startsWith("http://127.0.0.1:")
+      ) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Permissive in deployment if behind reverse proxy
+      }
     },
-    android: {
-      notification: {
-        icon: 'ic_notification',  // Custom notification icon (from mipmap)
-      },
-    },
-    data: {
-      chat: JSON.stringify(chat)
-    },
-    token: token.fcmToken,
-  };
+    credentials: true,
+  })
+);
+
+app.use(express.json());
+
+// System Health Check
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    status: "healthy",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "development",
+  });
+});
+
+// API Routes
+app.use("/api/user", userRouter);
+app.use("/api/chat", chatRouter);
+app.use("/api/message", messageRouter);
+
+// Push Notification Endpoint (Firebase)
+app.post("/send-notification", protect, async (req, res) => {
+  const { title, body, userId, chat } = req.body;
+
+  if (!title || !body || !userId) {
+    return res.status(400).json({ success: false, message: "Missing required notification fields" });
+  }
 
   try {
-    // Send the notification to the device
-    const response = await messaging.send(message);
+    const user = await User.findById(userId);
 
-    res.status(200).send('Notification sent successfully');
+    if (!user || !user.fcmToken) {
+      return res.status(200).json({ success: false, message: "No FCM token registered for recipient" });
+    }
+
+    const message = {
+      notification: { title, body },
+      android: {
+        notification: { icon: "ic_notification" },
+      },
+      data: {
+        chat: JSON.stringify(chat || {}),
+      },
+      token: user.fcmToken,
+    };
+
+    const response = await messaging.send(message);
+    res.status(200).json({ success: true, message: "Notification sent successfully", response });
   } catch (error) {
-    console.error('Error sending notification:', error);
-    res.status(500).send('Failed to send notification');
+    console.error("[Notification Error]:", error.message);
+    res.status(500).json({ success: false, message: "Failed to send notification", error: error.message });
   }
 });
 
-
-// -----------------------------------------------
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+// Production Static Assets
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.resolve(__dirname, "../frontend/dist")));
+  const frontendDistPath = path.resolve(__dirname, "../frontend/dist");
+  app.use(express.static(frontendDistPath));
 
-  app.get("*", (req, res) => {
-    res.sendFile(path.resolve(__dirname, "../frontend/dist/index.html"));
+  app.get("*", (req, res, next) => {
+    // If request is for an API route that wasn't matched, delegate to 404 handler
+    if (req.originalUrl.startsWith("/api/")) {
+      return next();
+    }
+    res.sendFile(path.resolve(frontendDistPath, "index.html"));
   });
 } else {
   app.get("/", (req, res) => {
-    res.send("server is running")
-  })
+    res.send("MERN Chat Application Server is running.");
+  });
 }
 
-// -----------------------------------------------
+app.use(notfound);
+app.use(errorHandler);
 
-app.use(notfound)
-app.use(errorHandler)
-const port = process.env.PORT || 5000
+const port = process.env.PORT || 5000;
 
 const server = app.listen(port, () => {
-  console.log("App running on 5000 port")
-})
+  console.log(`[Server] Live and running on port ${port} (mode: ${process.env.NODE_ENV || "development"})`);
+});
 
+// Socket.io Realtime Setup
 const io = new Server(server, {
   pingTimeout: 60000,
   cors: {
-    origin: `${process.env.NODE_ENV === "production" ? "https://v-chat-2y3m.onrender.com" : "http://localhost:5173"}`
-  }
-})
+    origin: "*", // Handled by express CORS and reverse proxy
+    methods: ["GET", "POST"],
+  },
+});
 
 io.on("connection", (socket) => {
-  // console.log("connected to socket io")
-
   socket.on("setup", (userData) => {
-    socket.join(userData._id)
-    // console.log(userData._id)
-    socket.emit("connected")
-  })
+    if (userData?._id) {
+      socket.join(userData._id);
+      socket.emit("connected");
+    }
+  });
 
   socket.on("join chat", (room) => {
-    socket.join(room)
-    // console.log("user joined room",room)
-  })
+    socket.join(room);
+  });
 
-  // socket.on("new message", (msg) => {
-  //   const chat = msg.chat
+  socket.on("typing", (room) => {
+    socket.in(room).emit("typing", room);
+  });
 
-  //   if (!chat?.users) return
+  socket.on("stop typing", (room) => {
+    socket.in(room).emit("stop typing", room);
+  });
 
-  //   chat.users.forEach(user => {
-  //     if (user._id === msg.sender._id) return
+  socket.on("new message", (newMessageRecieved) => {
+    const chat = newMessageRecieved?.chat;
+    if (!chat?._id) return;
 
-  //     socket.in(user._id).emit("message received", msg)
-  //   })
-  // })
-  socket.on("new message", (msg)=>{
-    socket.in(msg.chat._id).emit("message received",msg)
-  })
+    // Broadcast to room
+    socket.in(chat._id).emit("message received", newMessageRecieved);
 
-
-
-  //seen feature
-  socket.on("message_seen", ({ messageId, seenBy, chat }) => {
-    chat.users.forEach(user => {
-      if (user._id === seenBy) return
-      socket.in(user._id).emit('message_seen_ack', { messageId, seenBy })
-    })
-  })
-
-  socket.on("last message seen",({chat,seenBy})=>{
-    chat.users.forEach(user => {
-      if (user._id === seenBy) return
-      socket.in(user._id).emit('lastmsg seen ack', { seenBy })
-    })
-  })
-
-  // socket.on('db_updated', ({ tempId, messageId, chat, seenBy }) => {
-  //   chat.users.forEach(user => {
-  //     if (user._id === seenBy) return
-  //     socket.in(user._id).emit("message_updated_db", { tempId, messageId })
-  //   })
-  // })
-
-  // socket.on('db_seenmessage', async ({ messageId, seenBy }) => {
-  
-  //   if (!messageId || !seenBy) {
-  //     console.warn(' Invalid payload for db_seenmessage');
-  //     return;
-  //   }
-  
-  //   try {
-  //     await Message.findByIdAndUpdate(
-  //       messageId,
-  //       { $addToSet: { seenBy: seenBy } },
-  //       { new: true } // optional: return updated doc if you need it
-  //     );
-
-  //   } catch (err) {
-  //     console.error(' Error marking message as seen:', err);
-  //   }
-  // });
-
-  socket.on("seenAllMessages",async({chat,senderId,seenBy})=>{
-    
-    try {
-      await Message.updateMany({sender:senderId,chat,seenBy:{$ne: seenBy}},{ $addToSet: { seenBy: seenBy } })
-    } catch (error) {
-      
+    // Also notify individual user rooms if provided (for unread counters)
+    if (Array.isArray(chat.users)) {
+      chat.users.forEach((user) => {
+        const recipientId = typeof user === "object" ? user._id : user;
+        if (recipientId && recipientId !== newMessageRecieved?.sender?._id) {
+          socket.in(recipientId).emit("notification received", newMessageRecieved);
+        }
+      });
     }
-  })
+  });
 
-  socket.on("typing", (room) => socket.in(room).emit("typing"))
-  socket.on(("stop typing"), (room => socket.in(room).emit("stop typing")))
+  socket.on("message_seen", ({ messageId, seenBy, chat }) => {
+    if (chat?.users && Array.isArray(chat.users)) {
+      chat.users.forEach((user) => {
+        const uId = typeof user === "object" ? user._id : user;
+        if (uId && uId !== seenBy) {
+          socket.in(uId).emit("message_seen_ack", { messageId, seenBy });
+        }
+      });
+    }
+  });
 
-  socket.off("setup", (userData) => {
-    console.log("user diconneted")
-    socket.leave(userData._id)
-  })
-})
+  socket.on("seenAllMessages", async ({ chat, senderId, seenBy }) => {
+    try {
+      if (chat && senderId && seenBy) {
+        await Message.updateMany(
+          { sender: senderId, chat, seenBy: { $ne: seenBy } },
+          { $addToSet: { seenBy } }
+        );
+      }
+    } catch (error) {
+      console.error("[Socket seenAllMessages Error]:", error.message);
+    }
+  });
+
+  socket.on("disconnect", () => {
+    // Socket disconnected cleanly
+  });
+});
