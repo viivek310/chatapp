@@ -1,32 +1,43 @@
-import React, { useEffect, useRef, useState } from 'react'
-import Navbar from '../components/Navbar'
-import { useUser } from '../../context/userContext'
-import MyChat from '../components/chat/MyChat'
-import ChatBox from '../components/chat/ChatBox'
-import Profile from '../components/Profile'
-
-
+import React, { useEffect, useState } from 'react';
+import Navbar from '../components/Navbar';
+import { useUser } from '../../context/userContext';
+import MyChat from '../components/chat/MyChat';
+import ChatBox from '../components/chat/ChatBox';
+import Profile from '../components/Profile';
 
 const Chat = () => {
-  const { user } = useUser()
-  const [profileOpen, setProfileOpen] = useState(false)
-  const [profileUser,setProfileUser] = useState(user)
+  const { user } = useUser();
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileUser, setProfileUser] = useState(user);
 
   useEffect(() => {
-    setProfileUser(user)
-  }, [user])
-  
+    setProfileUser(user);
+  }, [user]);
+
+  if (!user) {
+    return null;
+  }
+
   return (
-    user && <div className={`${profileOpen ? "before:content-[''] before:h-screen before:w-screen before:absolute before:inset-0 before:bg-slate-200 before:bg-opacity-30 before:z-10 relative" : ""} h-[100svh] overflow-hidden`}
-    >
-      {profileOpen && <Profile setProfileOpen={() => setProfileOpen(false)} data={profileUser} />}
-      <Navbar setUser={setProfileUser} open={() => setProfileOpen(prev => !prev)} />
-      <main className='flex gap-3 lg:p-4 h-[calc(100%-50px)]'>
+    <div className="h-screen w-screen flex flex-col overflow-hidden bg-dark-bg text-slate-100 select-none">
+      {profileOpen && (
+        <Profile
+          setProfileOpen={() => setProfileOpen(false)}
+          data={profileUser}
+        />
+      )}
+
+      <Navbar setUser={setProfileUser} open={() => setProfileOpen((prev) => !prev)} />
+
+      <main className="flex-1 flex gap-3 p-2 sm:p-4 overflow-hidden max-w-[1600px] w-full mx-auto">
         <MyChat />
-        <ChatBox setUser={setProfileUser} open={() => setProfileOpen(prev => !prev)}/>
+        <ChatBox
+          setUser={setProfileUser}
+          open={() => setProfileOpen((prev) => !prev)}
+        />
       </main>
     </div>
-  )
-}
+  );
+};
 
-export default Chat
+export default Chat;

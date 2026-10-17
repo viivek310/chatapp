@@ -1,260 +1,280 @@
-import React, { useState } from 'react'
+import React, { useState } from 'react';
 import { RxCross2 } from "react-icons/rx";
 import { useUser } from '../../context/userContext';
 import SearchUser from './SearchUser';
 import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { IoClose } from "react-icons/io5";
+import { FaUsers, FaUserShield } from "react-icons/fa";
 
 function GroupUpdateModal({ groupModal, chat, fetchMessages }) {
-    const [groupChatName, setGroupChatName] = useState("")
-    const { user, api, setChats, selectedChat, setSelectedChat } = useUser()
-    const [searchResult, setSearchResult] = useState([])
-    const [selectedUsers, setSelectedUsers] = useState(chat.users)
+  const [groupChatName, setGroupChatName] = useState("");
+  const { user, api, setChats, selectedChat, setSelectedChat } = useUser();
+  const [searchResult, setSearchResult] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-    const handleSearch = async (query) => {
-        if (!query || query.trim() === "") {
-            setSearchResult([])
-            return
-        }
+  const isAdmin = selectedChat?.groupAdmin?._id === user?._id;
 
-        const res = await fetch(`${api}api/user?search=${query.trim()}`, {
-            headers: {
-                Authorization: `Bearer ${user.token}`
-            }
-        })
-        const { data, success } = await res.json()
-        if (success) {
-            setSearchResult(data)
+  const handleSearch = async (query) => {
+    if (!query || query.trim() === "") {
+      setSearchResult([]);
+      return;
+    }
+
+    try {
+      const res = await fetch(`${api}api/user?search=${query.trim()}`, {
+        headers: {
+          Authorization: `Bearer ${user.token}`,
+        },
+      });
+      const { data, success } = await res.json();
+      if (success && Array.isArray(data)) {
+        setSearchResult(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddUser = async (u) => {
+    if (selectedChat?.users?.some((item) => item._id === u._id)) {
+      toast.info('User is already in this channel');
+      return;
+    }
+
+    if (!isAdmin) {
+      toast.error('Only channel administrators can add members');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${api}api/chat/groupadd`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({
+          chatId: selectedChat._id,
+          userId: u._id,
+        }),
+      });
+
+      const { data, success, message } = await res.json();
+      if (success && data) {
+        setSelectedChat(data);
+        if (fetchMessages) fetchMessages();
+        toast.success(`Added ${u.name} to channel`);
+      } else {
+        toast.error(message || "Failed to add member");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error adding member");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveUser = async (u) => {
+    if (!isAdmin && u._id !== user._id) {
+      toast.error('Only channel administrators can remove members');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${api}api/chat/groupremove`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({
+          chatId: selectedChat._id,
+          userId: u._id,
+        }),
+      });
+
+      const { data, success, message } = await res.json();
+      if (success) {
+        if (u._id === user._id) {
+          // If the user left the group themselves
+          setSelectedChat(null);
+          setChats((prev) => prev.filter((c) => c._id !== selectedChat._id));
+          groupModal();
+          toast.info("You left the channel.");
         } else {
-            toast.error("Error searching user", {
-                position: "bottom-center",
-                autoClose: 5000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: "dark",
-            });
+          setSelectedChat(data);
+          if (fetchMessages) fetchMessages();
+          toast.success(`Removed ${u.name}`);
         }
-
+      } else {
+        toast.error(message || "Failed to remove member");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error removing member");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const handleGroup = async (u) => {
-        const exit = selectedUsers.find(us => us._id === u._id)
-        if (exit) {
-            toast.error('User already in group', {
-                position: "bottom-center",
-                autoClose: 5000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: "dark",
-            });
-            return
-        }
+  const handleRename = async (e) => {
+    e.preventDefault();
+    if (!groupChatName.trim()) return;
 
-        if (selectedChat.groupAdmin._id !== user._id) {
-            toast.error('Only admin can add user', {
-                position: "bottom-center",
-                autoClose: 5000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: "dark",
-            });
-            return
-        }
+    setLoading(true);
+    try {
+      const res = await fetch(`${api}api/chat/rename`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({
+          chatId: selectedChat._id,
+          chatName: groupChatName.trim(),
+        }),
+      });
 
-
-        const res = await fetch(`${api}api/chat/groupadd`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-                Authorization: `Bearer ${user.token}`
-            },
-            body: JSON.stringify({
-                chatId: selectedChat._id,
-                userId: u._id
-            })
-        })
-        const { data, success, error } = await res.json()
-        if (success) {
-            setSelectedChat(data)
-            fetchMessages()
-            setSelectedUsers(us => [...us, u])
-        } else {
-            if(error==="jwt"){
-                localStorage.removeItem("userInfo")
-            }
-            toast.error('User already in group', {
-                position: "bottom-center",
-                autoClose: 5000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: "dark",
-            });
-        }
-
+      const { data, success, message } = await res.json();
+      if (success && data) {
+        setSelectedChat(data);
+        setChats((prev) =>
+          prev.map((c) => (c._id === data._id ? { ...c, chatName: data.chatName } : c))
+        );
+        setGroupChatName("");
+        toast.success("Channel renamed successfully!");
+      } else {
+        toast.error(message || "Error updating group name");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to rename channel");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const delteUser = (user) => {
-        setSelectedUsers(us => us.filter(u => u._id !== user._id))
-    }
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md select-none text-left">
+      <div className="w-full max-w-lg glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl relative border border-white/10 animate-in fade-in zoom-in-95 duration-150">
+        <button
+          onClick={groupModal}
+          className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          aria-label="Close modal"
+        >
+          <RxCross2 size={20} />
+        </button>
 
-    const doNothing = (e) => {
-        e.preventDefault()
-    }
-
-    // const submitGroup = async()=>{
-    //     // console.log()
-    //     if(!groupChatName||selectedUsers.length===0){
-    //         toast.error('Select all the fields', {
-    //             position: "bottom-center",
-    //             autoClose: 5000,
-    //             hideProgressBar: false,
-    //             closeOnClick: true,
-    //             pauseOnHover: true,
-    //             draggable: true,
-    //             progress: undefined,
-    //             theme: "dark",
-    //             }); 
-    //         return
-    //     }
-
-    //     try {
-    //         const res = await fetch(`${api}api/chat/group`,{
-    //             method: "POST",
-    //             headers:{
-    //                 "Content-Type":"application/json",
-    //                 "Accept":"application/json",
-    //                 Authorization: `Bearer ${user.token}`
-    //             },
-    //             body: JSON.stringify({
-    //                 name: groupChatName,
-    //                 users: JSON.stringify(selectedUsers.map(u=>u._id))
-    //             })
-    //         })
-
-    //         const data = await res.json()
-    //         groupModal()
-    //         setChats(c=>[data,...c])
-
-    //         toast.success(`Group created`, {
-    //             position: "bottom-center",
-    //             autoClose: 5000,
-    //             hideProgressBar: false,
-    //             closeOnClick: true,
-    //             pauseOnHover: true,
-    //             draggable: true,
-    //             progress: undefined,
-    //             theme: "dark",
-    //             toastId:1,
-    //             });
-    //     } catch (error) {
-    //         console.log(error)
-    //         toast.error('Failed to create chat', {
-    //             position: "bottom-center",
-    //             autoClose: 5000,
-    //             hideProgressBar: false,
-    //             closeOnClick: true,
-    //             pauseOnHover: true,
-    //             draggable: true,
-    //             progress: undefined,
-    //             theme: "dark",
-    //             }); 
-    //     }
-    // }
-fetch
-    const handleRename = async () => {
-        if (!groupChatName) return
-
-
-        const res = await fetch(`${api}api/chat/rename`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-                Authorization: `Bearer ${user.token}`
-            },
-            body: JSON.stringify({
-                chatId: selectedChat._id,
-                chatName: groupChatName
-            })
-
-        })
-        const { data, success, message, error } = await res.json()
-        if (success) {
-            setSelectedChat(data)
-        } else {
-            if(error==="jwt"){
-                localStorage.removeItem("userInfo");
-            }
-            toast.error('Error updating group name', {
-                position: "bottom-center",
-                autoClose: 5000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: "dark",
-            });
-        }
-
-    }
-
-    return (
-        <div className='h-screen w-sc reen bg fixed inset-0 bg-slate-300 bg-opacity-30 flex justify-center select-none pt-20'>
-            <div className='h-fit w-[90vw] md:w-[30vw] transition-height delay-1000 bg-white relative px-10 py-5 rounded-lg'>
-                <button onClick={groupModal} className='cross absolute top-2 right-2 text-xl '><RxCross2 /></button>
-                <div className="heading text-center text-3xl font-bold mb-5">{chat.chatName}</div>
-                <form onSubmit={doNothing} className='space-y-5'>
-                    <div className='flex flex-wrap gap-3'>
-                        {selectedUsers?.map((user) => (
-                            <div onClick={() => delteUser(user)} key={user._id} className='flex gap-1 items-center bg-purple-700 text-white p-1 px-2 rounded-full cursor-pointer'>
-                                <div className="username">
-                                    {user.name}
-                                </div>
-                                <span>
-                                    <IoClose />
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                    <div className='flex gap-3'>
-                        <input className='w-full p-2 rounded-md border border-slate-700' type="text" placeholder='Group Name' value={groupChatName} onChange={(e) => setGroupChatName(e.target.value)} />
-                        <button onClick={handleRename} className='bg-purple-500 text-white px-2 rounded-md'>Update</button>
-                    </div>
-                    <div>
-                        <input className='w-full p-2 rounded-md border border-slate-700' type="text" placeholder='Search User' onChange={(e) => handleSearch(e.target.value)} />
-                    </div>
-
-
-
-                    <div className='space-y-2'>
-                        {searchResult?.slice(0, 4).map(search => (
-                            <SearchUser key={search._id} chat={search} handleClick={() => handleGroup(search)} />
-                        ))}
-                    </div>
-
-
-                    <div className="text-end">
-                        <button className='button bg-red-600 text-white w-fit ml-auto p-2 rounded-lg hover:bg-red-700 transition-colors duration-300'>Leave Group</button>
-                    </div>
-                </form>
+        {/* Modal Header */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-indigo-600 flex items-center justify-center text-white shadow-md">
+            <FaUsers size={18} />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-white tracking-tight">{chat?.chatName}</h2>
+            <div className="flex items-center gap-1.5 text-xs text-brand-300">
+              <FaUserShield size={12} />
+              <span>Admin: {selectedChat?.groupAdmin?.name || "Group Admin"}</span>
             </div>
+          </div>
         </div>
-    )
+
+        {/* Channel Members List Chips */}
+        <div className="mb-4">
+          <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">
+            Channel Members ({selectedChat?.users?.length || 0})
+          </label>
+          <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto py-1">
+            {selectedChat?.users?.map((u) => {
+              const isMemberAdmin = u._id === selectedChat?.groupAdmin?._id;
+              return (
+                <span
+                  key={u._id}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-white/10 text-xs font-medium text-slate-200"
+                >
+                  <span>{u.name}</span>
+                  {isMemberAdmin ? (
+                    <span className="text-[10px] text-amber-400 font-bold ml-1">(Admin)</span>
+                  ) : (
+                    isAdmin && (
+                      <button
+                        onClick={() => handleRemoveUser(u)}
+                        className="hover:text-red-400 transition-colors ml-1"
+                        title="Remove member"
+                      >
+                        <IoClose size={13} />
+                      </button>
+                    )
+                  )}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Rename Form (Admin or Member) */}
+        <form onSubmit={handleRename} className="flex gap-2 mb-4">
+          <input
+            type="text"
+            placeholder="New channel name..."
+            value={groupChatName}
+            onChange={(e) => setGroupChatName(e.target.value)}
+            className="flex-1 px-4 py-2 rounded-xl glass-input text-xs sm:text-sm placeholder:text-slate-500"
+          />
+          <button
+            type="submit"
+            disabled={!groupChatName.trim() || loading}
+            className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-md transition-all disabled:opacity-40"
+          >
+            Rename
+          </button>
+        </form>
+
+        {/* Add Members (Admin Only) */}
+        {isAdmin && (
+          <div className="space-y-2 mb-6">
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              Add New Member
+            </label>
+            <input
+              type="search"
+              placeholder="Search user..."
+              onChange={(e) => handleSearch(e.target.value)}
+              className="w-full px-4 py-2 rounded-xl glass-input text-xs sm:text-sm placeholder:text-slate-500"
+            />
+
+            <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+              {searchResult?.slice(0, 3).map((u) => (
+                <SearchUser
+                  key={u._id}
+                  chat={u}
+                  handleClick={() => handleAddUser(u)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Leave Group Action */}
+        <div className="pt-3 border-t border-white/10 flex justify-between items-center">
+          <span className="text-[11px] text-slate-500">
+            {isAdmin ? "Admin actions enabled" : "Standard member"}
+          </span>
+          <button
+            type="button"
+            onClick={() => handleRemoveUser(user)}
+            disabled={loading}
+            className="px-4 py-2 rounded-xl bg-red-600/20 hover:bg-red-600 border border-red-500/40 text-red-300 hover:text-white text-xs font-semibold transition-all active:scale-95"
+          >
+            Leave Channel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-export default GroupUpdateModal
+export default GroupUpdateModal;

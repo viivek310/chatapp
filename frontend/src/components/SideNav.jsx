@@ -1,124 +1,163 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react';
 import { useUser } from '../../context/userContext';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import { json } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import SearchUser from './SearchUser';
+import { IoClose } from 'react-icons/io5';
+import { CiSearch } from 'react-icons/ci';
 
 function SideNav({ open, setOpen }) {
-  const sideNav = useRef(null)
-  const [search, setSearch] = useState()
-  const [searchResult, setSearchResult] = useState()
-  const { user, selectedChat, setSelectedChat, chats, setChats, api } = useUser()
+  const sideNavRef = useRef(null);
+  const [search, setSearch] = useState('');
+  const [searchResult, setSearchResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const { user, setSelectedChat, setChats, api, setChatOpen } = useUser();
+
   const handleClickOutside = (event) => {
-    if (sideNav.current && !sideNav.current.contains(event.target)) {
-      setOpen()
+    if (sideNavRef.current && !sideNavRef.current.contains(event.target)) {
+      setOpen();
     }
   };
 
   useEffect(() => {
-    document.addEventListener("mousedown", handleClickOutside);
-
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
+  }, [open]);
 
-  const userSearch = async (e) => {
-    e.preventDefault()
-    if (search !== "") {
-      const res = await fetch(`${api}api/user?search=${search}`, {
-        headers: {
-          Authorization: `Bearer ${user.token}`
-        }
-      })
-      const {data,success,error} = await res.json()
-      if(success){
-        setSearchResult(data)
-      }else if(error==="jwt"){
-        localStorage.removeItem("userInfo")
-      }
-    } else {
-      setChats([])
-    }
-  }
+  const handleSearchChange = async (e) => {
+    const val = e.target.value;
+    setSearch(val);
 
-  const searchChange = async (e) => {
-    e.preventDefault()
-    let srch = e.target.value
-    setSearch(e.target.value)
-    // console.log(search)
-    if (!srch || srch.trim() === "") {
-      setSearchResult()
-      return
+    if (!val || val.trim() === "") {
+      setSearchResult(null);
+      return;
     }
+
+    setLoading(true);
     try {
-      const res = await fetch(`${api}api/user?search=${srch.trim()}`, {
+      const res = await fetch(`${api}api/user?search=${val.trim()}`, {
         headers: {
-          Authorization: `Bearer ${user.token}`
-        }
-      })
-      let { data } = await res.json()
-      data = data.slice(0, 5)
-      setSearchResult(data)
-    } catch (error) {
-      toast.error("Error searching user", {
-        position: "bottom-center",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "dark",
+          Authorization: `Bearer ${user.token}`,
+        },
       });
+
+      const { data, success, error } = await res.json();
+      if (success && Array.isArray(data)) {
+        setSearchResult(data.slice(0, 10));
+      } else if (error === "jwt") {
+        localStorage.removeItem("userInfo");
+      }
+    } catch (error) {
+      console.error("[Search User Error]:", error);
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
   const accessChat = async (userId) => {
-    setSearch("")
-    setSearchResult()
-    setOpen()
+    setLoading(true);
+    try {
+      const res = await fetch(`${api}api/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({ userId }),
+      });
 
-
-    const res = await fetch(`${api}api/chat`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        Authorization: `Bearer ${user.token}`
-      },
-      body: JSON.stringify({ userId })
-    })
-    const { data, success, error } = await res.json()
-    if (success) {
-      console.log(data)
-      setSelectedChat(data)
-    }else if(error==="jwt"){
-      localStorage.removeItem("userInfo")
+      const { data, success } = await res.json();
+      if (success && data) {
+        setSelectedChat(data);
+        setChats((prev) => {
+          if (!prev.find((c) => c._id === data._id)) {
+            return [data, ...prev];
+          }
+          return prev;
+        });
+        setChatOpen(false); // Open chat box on mobile
+        setSearch('');
+        setSearchResult(null);
+        setOpen();
+      }
+    } catch (err) {
+      console.error("[Access Chat Error]:", err);
+      toast.error("Failed to start chat.");
+    } finally {
+      setLoading(false);
     }
-
-  }
+  };
 
   return (
     <>
-      <aside tabIndex={0} ref={sideNav} onClick={handleClickOutside} className={`bg-slate-50 text-black h-screen w-64 fixed ${open ? "inset-0" : "top-0 left-[-100%]"} px-1 py-2 z-20 shadow-md flex flex-col`}>
-        <h2 className='text-center mb-3 text-xl font-bold text-slate-900'>Search Users</h2>
-        <form onSubmit={userSearch} className='search text-center  flex w-full '>
-          <input onChange={searchChange} value={search || ""} className='border border-black focus:outline-none rounded-md  p-1 w-[80%]' type="search" name="" id="" placeholder='search user' required />
-          <button type='submit' className='bg-blue-500 px-2 rounded-md text-white border border-black flex-shrink'>Search</button>
-        </form>
+      {/* Backdrop overlay */}
+      {open && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 transition-opacity" />
+      )}
 
-        <div className='user-search-box flex-1 mt-3 overflow-y-auto space-y-3'>
-          {searchResult?.map(chat => (
-            <SearchUser key={chat._id} chat={chat} handleClick={() => accessChat(chat._id)} />
-          ))}
-          {searchResult?.length === 0 && <div>No such user found</div>}
+      {/* Slide-out Drawer */}
+      <aside
+        ref={sideNavRef}
+        className={`fixed top-0 left-0 h-screen w-80 sm:w-96 glass-panel border-r border-white/10 z-40 p-5 shadow-2xl flex flex-col transition-transform duration-300 ease-out ${
+          open ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {/* Drawer Header */}
+        <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-4">
+          <div className="flex items-center gap-2">
+            <CiSearch size={20} className="text-brand-400" />
+            <h2 className="text-base font-bold text-white">Search Users</h2>
+          </div>
+          <button
+            onClick={setOpen}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            aria-label="Close drawer"
+          >
+            <IoClose size={20} />
+          </button>
         </div>
 
+        {/* Search Input */}
+        <div className="relative mb-4">
+          <input
+            type="search"
+            value={search}
+            onChange={handleSearchChange}
+            placeholder="Search by name or email..."
+            className="w-full px-4 py-2.5 rounded-xl glass-input text-xs sm:text-sm placeholder:text-slate-500 pr-10"
+            autoFocus={open}
+          />
+          {loading && (
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          )}
+        </div>
 
+        {/* Results List */}
+        <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+          {searchResult?.length > 0 ? (
+            searchResult.map((u) => (
+              <SearchUser
+                key={u._id}
+                chat={u}
+                handleClick={() => accessChat(u._id)}
+              />
+            ))
+          ) : searchResult && searchResult.length === 0 ? (
+            <div className="py-12 text-center text-xs text-slate-400">
+              No users matching "{search}"
+            </div>
+          ) : (
+            <div className="py-12 text-center text-xs text-slate-500">
+              Type a name or email to discover colleagues and friends.
+            </div>
+          )}
+        </div>
       </aside>
     </>
-  )
+  );
 }
 
-export default SideNav
+export default SideNav;

@@ -1,145 +1,233 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react';
 import { CiSearch } from "react-icons/ci";
 import SideNav from './SideNav';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/userContext';
-import { IoChevronDown, IoNotifications } from "react-icons/io5";
-import { Button, Popover } from "flowbite-react";
-
-
+import { useSocket } from '../context/SocketContext';
+import { IoChevronDown, IoNotificationsOutline, IoLogOutOutline, IoPersonOutline } from "react-icons/io5";
+import { BsChatDotsFill } from "react-icons/bs";
 
 function Navbar({ open, setUser }) {
-  const [sideNavOpen, setSideNavOpen] = useState(false)
-  const [contextMenuOpen, setContextMenuOpen] = useState(false)
-  const { notification,setSelectedChat,setNotification } = useUser()
-  const contextMenu = useRef()
-  const parentDiv = useRef()
-  const { user, count } = useUser()
-  const navigate = useNavigate()
+  const [sideNavOpen, setSideNavOpen] = useState(false);
+  const [contextMenuOpen, setContextMenuOpen] = useState(false);
+  const [notifMenuOpen, setNotifMenuOpen] = useState(false);
+  
+  const { user, notification, setSelectedChat, setNotification, logout } = useUser();
+  const { isConnected } = useSocket();
+  const navigate = useNavigate();
 
-
-  // const content = (
-  //   <div className="w-64 text-sm text-gray-500 dark:text-gray-400">
-  //     <div className="border-b border-gray-200 bg-gray-100 px-3 py-2 dark:border-gray-600 dark:bg-gray-700">
-  //       <h3 className="font-semibold text-gray-900 dark:text-white">Notification</h3>
-  //     </div>
-  //     <div className="px-3 py-2">
-  //       <p>And here's some amazing content. It's very engaging. Right?</p>
-  //     </div>
-  //   </div>
-  // );
-
-  const handleLogOut = () => {
-    localStorage.removeItem("userInfo")
-    navigate("/")
-  }
+  const contextMenuRef = useRef(null);
+  const userButtonRef = useRef(null);
+  const notifMenuRef = useRef(null);
+  const notifButtonRef = useRef(null);
 
   const handleClickOutside = (event) => {
-    if (contextMenu.current && !contextMenu.current.contains(event.target) && parentDiv.current && !parentDiv.current.contains(event.target)) {
-      // if(contextMenuOpen)
-      setContextMenuOpen(false)
+    if (
+      contextMenuRef.current &&
+      !contextMenuRef.current.contains(event.target) &&
+      userButtonRef.current &&
+      !userButtonRef.current.contains(event.target)
+    ) {
+      setContextMenuOpen(false);
+    }
+
+    if (
+      notifMenuRef.current &&
+      !notifMenuRef.current.contains(event.target) &&
+      notifButtonRef.current &&
+      !notifButtonRef.current.contains(event.target)
+    ) {
+      setNotifMenuOpen(false);
     }
   };
 
   useEffect(() => {
     document.addEventListener("mousedown", handleClickOutside);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const notificationClick = (n)=>{
-    setSelectedChat(n?.chat)
-    setNotification(notifications=>notifications.filter(no=>no!==n))
-  }
+  const handleNotificationClick = (n) => {
+    if (n?.chat) {
+      setSelectedChat(n.chat);
+    }
+    setNotification((prev) => prev.filter((item) => item !== n));
+    setNotifMenuOpen(false);
+  };
 
-  const handleProfileClick = ()=>{
-    open()
-    setUser(user)
-  }
+  const handleProfileClick = () => {
+    if (setUser && user) {
+      setUser(user);
+    }
+    open();
+    setContextMenuOpen(false);
+  };
+
+  const handleLogOut = () => {
+    if (logout) {
+      logout();
+    } else {
+      localStorage.removeItem("userInfo");
+      navigate("/");
+    }
+  };
 
   return (
-    <nav className='w-full bg-slate-900 bg-opacity-80 backdrop-blur-[2px] text-white shadow-md h-[50px] flex items-center justify-between px-5 select-none'>
+    <nav className="w-full glass-panel border-b border-white/10 text-white h-16 flex items-center justify-between px-4 sm:px-6 z-20 relative select-none">
       <SideNav open={sideNavOpen} setOpen={() => setSideNavOpen(false)} />
-      <div onClick={() => setSideNavOpen(true)} className="search px-2 sm:px-0 sm:w-28 h-7 bg-white text-black border border-black rounded-md flex items-center cursor-pointer text-2xl sm:text-base">
-        <CiSearch />
-        <span className='hidden sm:block'>Search user</span>
-      </div>
 
-      <h1 className='text-3xl font-bold cursor-pointer select-none'>V-chat</h1>
-
-
-      <div className='flex gap-2 lg:gap-5 items-center'>
-
-        <div className="flex gap-2">
-
-          {/* <Popover content={content} trigger="click">
-            <button className={`text-3xl relative`}>
-              <IoNotifications />
-              <span className='h-4 w-4 bg-red-600 rounded-full absolute top-0 right-0 flex justify-center items-center text-sm'>{notification.length}</span>
-
-              <div className='absolute text-black text-lg bg-red-500 w-[300px] left-1/2 -translate-x-1/2 -bottom-10 z-20'>
-                {notification?.map(n => (
-                  <div className='border-t border-b'>{n?.sender?.name} sent a message</div>
-                ))}
-              </div>
-            </button>
-
-          </Popover> */}
-
-          <Popover
-            aria-labelledby="default-popover"
-            content={
-              <div className="w-64 text-sm text-gray-500 dark:text-gray-400 ">
-                <div className="border-b border-gray-200 bg-gray-100 px-3 py-2 dark:border-gray-600 dark:bg-gray-700">
-                  <h3 id="default-popover" className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
-                </div>
-                <div className="">
-                  {notification?.map(n=>(
-                    <div className='text-black font-bold cursor-pointer hover:bg-slate-100 transition-colors duration-300 px-3 py-2 rounded-lg' onClick={()=>notificationClick(n)}>{n?.sender?.name} sent you a message</div>
-                  ))}
-                  {notification.length===0&&<div>No Notifications</div>}
-                </div>
-              </div>
-            }
-            arrow={false}
-          >
-            <button className={`text-3xl relative`}>
-              <IoNotifications />
-              <span className='h-4 w-4 bg-red-600 rounded-full absolute top-0 right-0 flex justify-center items-center text-sm'>{notification.length}</span>
-            </button>
-          </Popover>
+      {/* Brand & Search trigger */}
+      <div className="flex items-center gap-3 sm:gap-6">
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/chat")}>
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center shadow-md shadow-brand-500/20 text-white">
+            <BsChatDotsFill size={18} />
+          </div>
+          <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent hidden sm:inline">
+            V-Chat
+          </span>
         </div>
 
-        <div ref={parentDiv} onClick={() => setContextMenuOpen(prev => !prev)} className="profile flex items-center bg-white text-black px-3 rounded-md cursor-pointer relative">
-          <div className="profile-img h-10 w-10 rounded-full overflow-hidden">
-            <img className='w-full h-full object-cover' src={user?.pic|| "/images/image.png"} />
-          </div>
-          <div className="username mx-2 hidden sm:block">
-            {user?.name}
-          </div>
-          <div>{count}</div>
-          <div className="icon">
-            <IoChevronDown />
-          </div>
+        {/* Search Trigger */}
+        <button
+          onClick={() => setSideNavOpen(true)}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-white/10 text-slate-300 hover:text-white text-xs sm:text-sm transition-all"
+        >
+          <CiSearch size={18} className="text-brand-400" />
+          <span className="hidden md:inline">Find users & conversations</span>
+          <span className="md:hidden">Search</span>
+          <kbd className="hidden lg:inline-block px-1.5 py-0.5 text-[10px] bg-slate-900 border border-slate-700 rounded text-slate-400">
+            Ctrl+K
+          </kbd>
+        </button>
+      </div>
 
+      {/* Status & User Actions */}
+      <div className="flex items-center gap-2 sm:gap-4">
+        {/* Live Socket Status Pill */}
+        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/80 border border-white/5 text-[11px] text-slate-300">
+          <span
+            className={`w-2 h-2 rounded-full ${
+              isConnected ? "bg-emerald-400 shadow-[0_0_8px_#34d399]" : "bg-amber-400"
+            }`}
+          />
+          <span>{isConnected ? "Connected" : "Connecting..."}</span>
+        </div>
 
+        {/* Notifications Dropdown */}
+        <div className="relative">
+          <button
+            ref={notifButtonRef}
+            onClick={() => setNotifMenuOpen((prev) => !prev)}
+            aria-label="Notifications"
+            className="w-9 h-9 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-white/10 flex items-center justify-center text-slate-200 hover:text-white transition-all relative"
+          >
+            <IoNotificationsOutline size={20} />
+            {notification?.length > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center border-2 border-slate-900 animate-pulse">
+                {notification.length}
+              </span>
+            )}
+          </button>
 
-          {contextMenuOpen && <div tabIndex={0} ref={contextMenu} className="contextMenu w-full  bg-red-600 absolute left-0 top-16 rounded-md overflow-hidden text-white">
-            <div onClick={handleProfileClick} className="col1 py-2 text-center bg-neutral-800 border border-b-neutral-500 hover:bg-neutral-700">
-              Profile
+          {notifMenuOpen && (
+            <div
+              ref={notifMenuRef}
+              className="absolute right-0 mt-2 w-72 sm:w-80 glass-panel rounded-2xl shadow-2xl p-3 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
+            >
+              <div className="flex items-center justify-between pb-2 border-b border-white/10 mb-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Notifications
+                </span>
+                {notification?.length > 0 && (
+                  <button
+                    onClick={() => setNotification([])}
+                    className="text-[11px] text-brand-400 hover:underline"
+                  >
+                    Clear all
+                  </button>
+                )}
+              </div>
+
+              <div className="max-h-64 overflow-y-auto space-y-1">
+                {notification?.length > 0 ? (
+                  notification.map((n, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => handleNotificationClick(n)}
+                      className="p-2.5 rounded-xl bg-slate-800/50 hover:bg-brand-600/20 hover:border-brand-500/30 border border-transparent transition-all cursor-pointer text-xs"
+                    >
+                      <p className="font-semibold text-white">
+                        {n?.sender?.name || "Someone"}
+                      </p>
+                      <p className="text-slate-300 truncate">
+                        {n?.content || "Sent you a message"}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-6 text-center text-xs text-slate-400">
+                    No new notifications
+                  </div>
+                )}
+              </div>
             </div>
+          )}
+        </div>
 
-            <div onClick={handleLogOut} className="col1 py-2 text-center bg-neutral-800 border border-b-white hover:bg-neutral-700">
-              Logout
+        {/* User Profile Popover */}
+        <div className="relative">
+          <button
+            ref={userButtonRef}
+            onClick={() => setContextMenuOpen((prev) => !prev)}
+            className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-white/10 transition-all"
+          >
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-xs font-bold text-white shrink-0">
+              {user?.pic ? (
+                <img
+                  src={user.pic}
+                  alt={user?.name || "User"}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                user?.name?.[0]?.toUpperCase() || "U"
+              )}
             </div>
-            <div>{count}</div>
-          </div>}
+            <span className="text-xs sm:text-sm font-medium text-slate-200 hidden md:inline max-w-[120px] truncate">
+              {user?.name}
+            </span>
+            <IoChevronDown size={14} className="text-slate-400 hidden sm:inline" />
+          </button>
+
+          {contextMenuOpen && (
+            <div
+              ref={contextMenuRef}
+              className="absolute right-0 mt-2 w-48 glass-panel rounded-2xl shadow-2xl p-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150 space-y-1"
+            >
+              <div className="px-3 py-2 border-b border-white/10">
+                <p className="text-xs font-semibold text-white truncate">{user?.name}</p>
+                <p className="text-[11px] text-slate-400 truncate">{user?.email}</p>
+              </div>
+
+              <button
+                onClick={handleProfileClick}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <IoPersonOutline size={16} className="text-brand-400" />
+                View Profile
+              </button>
+
+              <button
+                onClick={handleLogOut}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-red-400 hover:bg-red-500/10 transition-colors"
+              >
+                <IoLogOutOutline size={16} />
+                Sign Out
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </nav>
-  )
+  );
 }
 
-export default Navbar
+export default Navbar;

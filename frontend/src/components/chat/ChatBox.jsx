@@ -1,275 +1,357 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { useUser } from '../../../context/userContext'
-import { getSender, getSenderInfo } from '../../config/util'
-import { IoMdArrowRoundBack } from "react-icons/io";
-import { IoMdMore } from "react-icons/io";
+import React, { useEffect, useRef, useState } from 'react';
+import { useUser } from '../../../context/userContext';
+import { useSocket } from '../../context/SocketContext';
+import { getSender, getSenderInfo, formatMessageTime } from '../../config/util';
+import { IoMdArrowRoundBack, IoMdMore } from "react-icons/io";
+import { IoSend } from "react-icons/io5";
+import { BsChatDots, BsShieldCheck } from "react-icons/bs";
 import GroupUpdateModal from '../GroupUpdateModal';
-import { io } from "socket.io-client"
 import { toast } from 'react-toastify';
 
-
-const ENDPOINT = process.env.NODE_ENV === "production" ? "https://vv-chat.up.railway.app/" : "http://localhost:5000"
-
-
-var socket, selectedChatCompare
-
 function ChatBox({ open, setUser }) {
-    const { selectedChat, setSelectedChat, user, api, chats, notification, setNotification } = useUser()
-    const [updateChat, setUpdateChat] = useState(false)
-    const [messages, setMessages] = useState([])
-    const [loading, setLoading] = useState(false)
-    const [newMessage, setNewMessage] = useState()
-    const [socketConnected, setSocketConnected] = useState(false)
-    const [typing, setTyping] = useState()
-    const [isTyping, setIsTyping] = useState()
-    const scrollcontainer = useRef()
-    const { chatOpen, setChatOpen } = useUser()
+  const { selectedChat, setSelectedChat, user, api, chatOpen, setChatOpen, setNotification } = useUser();
+  const { socket, isConnected, joinChat, emitTyping, emitStopTyping, emitNewMessage, typingInChat } = useSocket();
 
+  const [updateChat, setUpdateChat] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [newMessage, setNewMessage] = useState("");
+  const [isTypingLocal, setIsTypingLocal] = useState(false);
+  const scrollContainerRef = useRef(null);
+  const selectedChatRef = useRef(selectedChat);
 
-    useEffect(() => {
-        socket = io(ENDPOINT)
-        socket?.emit("setup", user)
-        socket?.on("connected", () => setSocketConnected(true))
-        socket?.on("typing", () => setIsTyping(true))
-        socket?.on("stop typing", () => setIsTyping(false))
-    }, [selectedChat])
+  useEffect(() => {
+    selectedChatRef.current = selectedChat;
+  }, [selectedChat]);
 
+  const fetchMessages = async () => {
+    if (!selectedChat?._id || !user?.token) return;
 
-    useEffect(() => {
-        if (scrollcontainer.current) {
-            scrollcontainer.current.scrollTop = scrollcontainer.current.scrollHeight;
-        }
-    }, [messages, isTyping]);
+    setLoading(true);
+    try {
+      const res = await fetch(`${api}api/message/${selectedChat._id}`, {
+        headers: {
+          Authorization: `Bearer ${user.token}`,
+        },
+      });
 
-    // useEffect(() => {
-    //   if(newMessage==="")
-    //     socket.emit("stop typing",selectedChat._id)
-
-    // }, [newMessage])
-
-
-    const fetchMessages = async () => {
-
-        if (!selectedChat) return
-
-        const res = await fetch(`${api}api/message/${selectedChat?._id}`, {
-            headers: {
-                Authorization: `Bearer ${user.token}`
-            }
-        })
-        const { success, data, error } = await res.json()
-        if (success) {
-            setMessages(data)
-        } else if (error === "jwt") {
-            localStorage.removeItem("userInfo")
-        }
-
-
-        socket?.emit("join chat", selectedChat._id)
+      const { success, data, error } = await res.json();
+      if (success && Array.isArray(data)) {
+        setMessages(data);
+      } else if (error === "jwt") {
+        localStorage.removeItem("userInfo");
+      }
+    } catch (err) {
+      console.error("[Fetch Messages Error]:", err);
+    } finally {
+      setLoading(false);
     }
 
-    useEffect(() => {
-        fetchMessages()
-        selectedChatCompare = selectedChat
-    }, [selectedChat])
+    joinChat(selectedChat._id);
+  };
 
-    useEffect(() => {
-        const handleMessageReceived = (msg) => {
-            if (!selectedChatCompare || selectedChatCompare._id !== msg.chat._id) {
-                if (!notification.includes(msg)) {
-                    setNotification(n => [msg, ...n])
-                }
-            } else {
-                setMessages(msgs => [...msgs, msg])
-            }
-        }
-        socket.on("message received", handleMessageReceived)
+  useEffect(() => {
+    fetchMessages();
+  }, [selectedChat?._id]);
 
-        return () => {
-            socket.off("message received", handleMessageReceived)
-        }
-    }, [socket, selectedChat])
+  // Listen for incoming messages on persistent socket
+  useEffect(() => {
+    if (!socket) return;
 
+    const handleMessageReceived = (msg) => {
+      const currentChat = selectedChatRef.current;
+      if (!currentChat || currentChat._id !== msg.chat?._id) {
+        // Message is for another chat: add to notifications
+        setNotification((prev) => {
+          if (!prev.some((n) => n._id === msg._id)) {
+            return [msg, ...prev];
+          }
+          return prev;
+        });
+      } else {
+        setMessages((prev) => [...prev, msg]);
+      }
+    };
 
-    // const sendText = async (e) => {
-    //     e.preventDefault()
-    //     // console.log(newMessage)
-    //     socket.emit("stop typing", selectedChat._id)
-    //     if (!newMessage) return
-    //     socket.emit("new message", newMessage)
-    //     setNewMessage("")
-    //     setMessages(msg => [...msg, newmsg])
-    //     try {
-    //         const res = await fetch(`${api}api/message`, {
-    //             headers: {
-    //                 "Content-type": "application/json",
-    //                 "Accept": "application/json",
-    //                 Authorization: `Bearer ${user.token}`
-    //             },
-    //             method: "POST",
-    //             body: JSON.stringify({
-    //                 content: newMessage,
-    //                 chatId: selectedChat._id
-    //             })
-    //         })
+    socket.on("message received", handleMessageReceived);
 
-    //         const newmsg = await res.json()
+    return () => {
+      socket.off("message received", handleMessageReceived);
+    };
+  }, [socket]);
 
-    //     } catch (error) {
-    //         localStorage.removeItem("userInfo")
-    //         // toast.error("Error occured while sending chats", {
-    //         //     position: "bottom-center",
-    //         //     autoClose: 5000,
-    //         //     hideProgressBar: false,
-    //         //     closeOnClick: true,
-    //         //     pauseOnHover: true,
-    //         //     draggable: true,
-    //         //     progress: undefined,
-    //         //     theme: "dark",
-    //         // });
-    //         setMessages("")
-    //     }
-    // }
-    
-    // socket.emit("new message", newmsg)
-    // setNewMessage("")
-    // setMessages(msg => [...msg, newmsg])
+  // Auto-scroll on new message or typing
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+    }
+  }, [messages, typingInChat]);
 
-    const sendText = async (e) => {
-        e.preventDefault()
-        socket.emit("stop typing", selectedChat._id)
-        if (!newMessage) return
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!newMessage.trim() || !selectedChat?._id) return;
 
-        setMessages(msg => [...msg, {sender:user,content:newMessage,chat:selectedChat,_id:selectedChat._id}])
-        socket.emit("new message", {sender:user,content:newMessage,chat:selectedChat,_id:selectedChat._id})
-        setNewMessage("")
+    const messageText = newMessage.trim();
+    setNewMessage("");
+    emitStopTyping(selectedChat._id);
+    setIsTypingLocal(false);
 
+    try {
+      const res = await fetch(`${api}api/message`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({
+          content: messageText,
+          chatId: selectedChat._id,
+        }),
+      });
 
-        const res = await fetch(`${api}api/message`, {
-            headers: {
-                "Content-type": "application/json",
-                "Accept": "application/json",
-                Authorization: `Bearer ${user.token}`
-            },
-            method: "POST",
-            body: JSON.stringify({
-                content: newMessage,
-                chatId: selectedChat._id
-            })
-        })
+      const { data, success } = await res.json();
 
-        const { data, success, error, message } = await res.json()
-        console.log(data)
-        if (success) {
-            // socket.emit("new message", data)
-            // setMessages(msg => [...msg, data])
-            // setNewMessage("")
-        } else {
-            if (error === "jwt") {
-                localStorage.removeItem("userInfo")
-            }
-            toast.error("Error occured while sending chats", {
-                position: "bottom-center",
-                autoClose: 5000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: "dark",
-            });
-        }
+      if (success && data) {
+        emitNewMessage(data);
+        setMessages((prev) => [...prev, data]);
+      } else {
+        toast.error("Message could not be sent.");
+      }
+    } catch (error) {
+      console.error("[Send Message Error]:", error);
+      toast.error("Failed to send message.");
+    }
+  };
 
+  const handleTyping = (e) => {
+    setNewMessage(e.target.value);
+
+    if (!isConnected || !selectedChat?._id) return;
+
+    if (!isTypingLocal) {
+      setIsTypingLocal(true);
+      emitTyping(selectedChat._id);
     }
 
+    const lastTypingTime = new Date().getTime();
+    const timerLength = 2500;
 
-    const typinghandler = (e) => {
-        setNewMessage(e.target.value)
+    setTimeout(() => {
+      const timeNow = new Date().getTime();
+      const timeDiff = timeNow - lastTypingTime;
+      if (timeDiff >= timerLength && isTypingLocal) {
+        emitStopTyping(selectedChat._id);
+        setIsTypingLocal(false);
+      }
+    }, timerLength);
+  };
 
-        if (!socketConnected) return
-
-        if (!typing) {
-            setTyping(true)
-            socket.emit("typing", selectedChat._id)
-        }
-        let lastTypingTime = new Date().getTime()
-        let timerLength = 3000
-
-        setTimeout(() => {
-            let timenow1 = new Date().getTime()
-            let timediff = timenow1 - lastTypingTime
-            if (timediff >= timerLength && typing) {
-                socket.emit("stop typing", selectedChat._id)
-                setTyping(false)
-            }
-        }, 3000);
-        if(e.target.value===""){
-            socket.emit("stop typing", selectedChat._id)
-            setTyping(false)
-        }
+  const openProfile = () => {
+    if (!selectedChat?.isGroupChat && setUser) {
+      const otherUser = getSenderInfo(user, selectedChat?.users);
+      setUser(otherUser);
+      open();
     }
+  };
 
-    const openProfile = () => {
-        setUser(getSenderInfo(user, selectedChat?.users))
-        open()
-    }
-    return (
-        <div className={`chatbox ${chatOpen && "hidden"} lg:block flex-[3]  bg-blue-50`}>
-            {selectedChat ? (
-                <div className='bg-slate-200 h-full flex flex-col'>
-                    <div className="chatheader px-10 py-2 w-full bg-slate-300 h-[10%] flex items-center text-2xl">
-                        <span onClick={() => setChatOpen(true)} className='mr-8 cursor-pointer'><IoMdArrowRoundBack /></span>
-                        {selectedChat?.isGroupChat ? (
-                            <div className="group-header flex justify-between items-center flex-1 ">
-                                <div className="name">
-                                    {selectedChat?.chatName}
-                                </div>
-                                <div onClick={() => setUpdateChat(true)} className="group-update cursor-pointer">
-                                    <IoMdMore />
-                                </div>
+  const otherUser = !selectedChat?.isGroupChat ? getSenderInfo(user, selectedChat?.users) : null;
+  const chatTitle = selectedChat?.isGroupChat ? selectedChat?.chatName : getSender(user, selectedChat?.users);
+  const isPeerTyping = selectedChat?._id && typingInChat[selectedChat._id];
 
-                                {updateChat && <span className='text-base fixed'><GroupUpdateModal chat={selectedChat} groupModal={() => setUpdateChat(false)} fetchMessages={fetchMessages} /></span>}
-                            </div>
+  return (
+    <div
+      className={`chatbox flex-1 glass-panel rounded-2xl h-full flex flex-col shadow-2xl overflow-hidden ${
+        chatOpen ? "hidden lg:flex" : "flex"
+      }`}
+    >
+      {selectedChat ? (
+        <div className="h-full flex flex-col">
+          {/* Chat Header */}
+          <div className="h-16 px-4 sm:px-6 border-b border-white/10 bg-slate-900/60 flex items-center justify-between z-10 shrink-0">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setChatOpen(true)}
+                className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                aria-label="Back to conversations"
+              >
+                <IoMdArrowRoundBack size={22} />
+              </button>
 
-
-                        ) : (
-                            <div className='flex items-center gap-3'>
-                                <div onClick={openProfile} className="profile cursor-pointer h-10 aspect-square rounded-full overflow-hidden">
-
-                                    <img className='w-full h-full object-cover' src={getSenderInfo(user, selectedChat?.users).pic || "/images/image.png"} alt="" />
-                                </div>
-                                <div className="name">{getSender(user, selectedChat?.users)}</div>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className='flex flex-col h-[90%]'>
-                        <div ref={scrollcontainer} className="messages  h-[90%] space-y-3 flex flex-col justify-end w-full py-3 px-3 overflow-y-scroll scrollbar-thin scrollbar-corner-transparent scrollbar-track-transparent scrollbar-thumb-blue-400">
-                            {messages?.map((m, i) => (
-                                <div key={m._id} className={`${m?.sender?._id === user?._id && " self-end"} flex items-end`}>
-                                    {(m?.sender?._id !== user?._id && (messages[i + 1]?.sender?._id === user?._id || m === messages[messages.length - 1])) ? <div className=' rounded-full h-8 aspect-square overflow-hidden'>
-                                        <img className='w-full h-full object-cover' src={getSenderInfo(user, selectedChat?.users)?.pic || "/images/image.png"} alt="" />
-                                    </div> : <div className='ml-8'></div>}
-                                    <div className={`py-2 px-4  w-fit rounded-full ${m?.sender?._id === user?._id ? "rounded-br-none self-end bg-blue-300" : "rounded-bl-none bg-green-300"}`}>{m?.content}</div>
-
-                                </div>
-                            ))}
-                            {isTyping && <div className={``}>
-                                <div className={`py-2 px-4  w-fit rounded-full rounded-bl-none bg-green-300`}>Typing..</div>
-                            </div>}
-                        </div>
-                        <form className='h-[10%] flex' onSubmit={sendText}>
-                            <input onChange={typinghandler} value={newMessage || ""} className='flex-1 rounded-lg border-2 border-blue-500 px-3' type="text" name="" id="" />
-                            <button className='bg-slate-700 text-white px-5 rounded-lg'>Send</button>
-                        </form>
-                    </div>
+              <div
+                onClick={openProfile}
+                className="flex items-center gap-3 cursor-pointer group"
+              >
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-800 border border-white/10 flex items-center justify-center text-white font-bold text-sm">
+                    {otherUser?.pic ? (
+                      <img src={otherUser.pic} alt={chatTitle} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="bg-gradient-to-tr from-brand-600 to-indigo-600 w-full h-full flex items-center justify-center">
+                        {chatTitle?.[0]?.toUpperCase() || "C"}
+                      </div>
+                    )}
+                  </div>
+                  {!selectedChat.isGroupChat && (
+                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-slate-900" />
+                  )}
                 </div>
 
-            ) : (
-                <div className='h-full w-full grid place-items-center'>Select a user to chat</div>
+                <div>
+                  <h3 className="font-bold text-sm text-white group-hover:text-brand-300 transition-colors">
+                    {chatTitle}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    {selectedChat.isGroupChat
+                      ? `${selectedChat.users?.length || 0} participants`
+                      : "Direct Channel"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {selectedChat.isGroupChat && (
+              <div className="relative">
+                <button
+                  onClick={() => setUpdateChat(true)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition-all"
+                  aria-label="Group settings"
+                >
+                  <IoMdMore size={22} />
+                </button>
+
+                {updateChat && (
+                  <GroupUpdateModal
+                    chat={selectedChat}
+                    groupModal={() => setUpdateChat(false)}
+                    fetchMessages={fetchMessages}
+                  />
+                )}
+              </div>
             )}
+          </div>
+
+          {/* Messages Area */}
+          <div
+            ref={scrollContainerRef}
+            className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3"
+          >
+            {loading ? (
+              <div className="h-full flex items-center justify-center text-slate-400 text-xs">
+                <span className="inline-block w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin mr-2" />
+                Loading conversation history...
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-slate-500 space-y-2">
+                <BsChatDots size={36} className="text-slate-600" />
+                <p className="text-xs">No messages yet. Send a friendly hello!</p>
+              </div>
+            ) : (
+              messages.map((m, i) => {
+                const isMyMessage = m?.sender?._id === user?._id;
+                const showAvatar =
+                  !isMyMessage &&
+                  (i === messages.length - 1 || messages[i + 1]?.sender?._id !== m?.sender?._id);
+
+                return (
+                  <div
+                    key={m._id || i}
+                    className={`flex items-end gap-2 ${isMyMessage ? "justify-end" : "justify-start"}`}
+                  >
+                    {!isMyMessage && (
+                      <div className="w-7 h-7 rounded-lg overflow-hidden bg-slate-800 border border-white/10 shrink-0 text-xs flex items-center justify-center text-white">
+                        {showAvatar ? (
+                          m?.sender?.pic ? (
+                            <img src={m.sender.pic} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            m?.sender?.name?.[0]?.toUpperCase() || "U"
+                          )
+                        ) : (
+                          <div className="w-7" />
+                        )}
+                      </div>
+                    )}
+
+                    <div
+                      className={`max-w-[78%] sm:max-w-[65%] px-4 py-2.5 rounded-2xl text-xs sm:text-sm break-words shadow-md transition-all ${
+                        isMyMessage
+                          ? "bg-gradient-to-r from-brand-600 to-indigo-600 text-white rounded-br-xs"
+                          : "bg-slate-800/90 text-slate-100 border border-white/10 rounded-bl-xs"
+                      }`}
+                    >
+                      {selectedChat.isGroupChat && !isMyMessage && (
+                        <p className="text-[10px] font-semibold text-brand-300 mb-0.5">
+                          {m?.sender?.name}
+                        </p>
+                      )}
+
+                      <p className="leading-relaxed">{m?.content}</p>
+
+                      <div
+                        className={`text-[9px] mt-1 text-right ${
+                          isMyMessage ? "text-indigo-200" : "text-slate-400"
+                        }`}
+                      >
+                        {formatMessageTime(m?.createdAt)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+
+            {/* Typing Indicator */}
+            {isPeerTyping && (
+              <div className="flex items-center gap-2">
+                <div className="px-3.5 py-2 rounded-2xl rounded-bl-none bg-slate-800/80 border border-white/10 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-400 typing-dot" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-400 typing-dot" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-400 typing-dot" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Message Input Bar */}
+          <div className="p-3 sm:p-4 border-t border-white/10 bg-slate-900/60 shrink-0">
+            <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={newMessage}
+                onChange={handleTyping}
+                placeholder="Type a message..."
+                className="flex-1 px-4 py-3 rounded-xl glass-input text-xs sm:text-sm placeholder:text-slate-500 focus:ring-1 focus:ring-brand-500 transition-all"
+              />
+              <button
+                type="submit"
+                disabled={!newMessage.trim()}
+                className="p-3 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-medium shadow-md shadow-brand-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 flex items-center justify-center shrink-0"
+                aria-label="Send message"
+              >
+                <IoSend size={16} />
+              </button>
+            </form>
+          </div>
         </div>
-    )
+      ) : (
+        /* Empty Welcome State */
+        <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-600/30 to-indigo-600/20 border border-brand-500/30 flex items-center justify-center text-brand-400 shadow-glow mb-2">
+            <BsChatDots size={30} />
+          </div>
+          <h3 className="text-xl font-bold text-white tracking-tight">
+            Your Real-Time Messaging Space
+          </h3>
+          <p className="text-xs sm:text-sm text-slate-400 max-w-sm leading-relaxed">
+            Select a contact from the sidebar or click search to start a new private or group chat.
+          </p>
+          <div className="flex items-center gap-2 text-[11px] text-slate-500 pt-2">
+            <BsShieldCheck className="text-emerald-400" />
+            <span>End-to-end synchronized via Socket.IO</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
-export default ChatBox
+export default ChatBox;

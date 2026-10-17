@@ -1,243 +1,412 @@
-import React, { useEffect, useState } from 'react'
-import { GoEye } from "react-icons/go";
-import { GoEyeClosed } from "react-icons/go";
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import React, { useState } from 'react';
+import { GoEye, GoEyeClosed } from "react-icons/go";
+import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../../context/userContext';
 import { postImage } from '../config/util';
+import { BsChatDotsFill, BsShieldLock, BsLightningCharge, BsPeopleFill } from "react-icons/bs";
+import { FaUserAstronaut } from "react-icons/fa";
 
 const Home = () => {
-  const [login, setlogin] = useState(true);
-  const [loginData, setLoginData] = useState({});
-  const [loginPassView, setLoginPassView] = useState(false)
-  const { user,api } = useUser()
-  const [signupData, setSignupData] = useState({})
-  const [passwordView, setPasswordView] = useState(false)
-  const [confirmView, setConfirmView] = useState(false)
-  const [errors, setErrors] = useState([]);
-  const [loading, setLoading] = useState(false)
-  const [loginLoading, setLoginLoading] = useState(false)
+  const [isLoginTab, setIsLoginTab] = useState(true);
+  const [loginData, setLoginData] = useState({ email: '', password: '' });
+  const [signupData, setSignupData] = useState({ name: '', email: '', password: '', confirm: '' });
+  const [loginPassView, setLoginPassView] = useState(false);
+  const [passwordView, setPasswordView] = useState(false);
+  const [confirmView, setConfirmView] = useState(false);
+  const [picLoading, setPicLoading] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const { setUser, api } = useUser();
   const navigate = useNavigate();
 
-
-  const validatePassword = (password) => {
-    const errors = [];
-    if (password?.length < 8) errors.push('Password must be at least 8 characters long.');
-    if (!/[A-Z]/.test(password)) errors.push('Password must contain at least one uppercase letter.');
-    if (!/[a-z]/.test(password)) errors.push('Password must contain at least one lowercase letter.');
-    if (!/[0-9]/.test(password)) errors.push('Password must contain at least one number.');
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) errors.push('Password must contain at least one special character.');
-    return errors;
+  const handleLoginChange = (e) => {
+    setLoginData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const getLoginData = (e) => {
-    setLoginData(prev => ({ ...prev, [e.target.name]: e.target.value }))
-  }
-  const getSignupData = (e) => {
-    setSignupData(prev => ({ ...prev, [e.target.name]: e.target.value }))
-    
-  }
-  const handleLogin = async (e) => {
-    e.preventDefault()
-    setLoginLoading(true)
+  const handleSignupChange = (e) => {
+    setSignupData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be under 5MB');
+      return;
+    }
+
+    setPicLoading(true);
     try {
-      const ftch = await fetch(`${api}api/user/login`, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        method: "POST",
-        body: JSON.stringify(loginData)
-      })
-      const res = await ftch.json()
-
-      if (res.success) {
-        localStorage.setItem("userInfo", JSON.stringify(res.data))
-        navigate("/chat")
-      }else{
-        localStorage.removeItem("userInfo")
-        toast.error(res?.message, {
-            position: "bottom-center",
-            autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-            theme: "dark",
-          });
-        setLoginLoading(false)
+      const url = await postImage(file);
+      if (url) {
+        setAvatarUrl(url);
+        toast.success('Avatar uploaded successfully!');
+      } else {
+        toast.info('Default avatar will be used (Cloudinary optional).');
       }
-      setLoginLoading(false)
-    } catch (error) {
-      console.log(error)
-      setLoginLoading(false)
+    } catch (err) {
+      console.error(err);
+      toast.error('Avatar upload failed');
+    } finally {
+      setPicLoading(false);
     }
-  }
+  };
 
-  const handleSignup = async (e) => {
-    e.preventDefault()
-    setErrors(validatePassword(signupData?.password))
-    setLoading(true)
-    if (signupData.password !== signupData.confirm) {
-      toast.error("password do not match", {
-        position: "bottom-center",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "dark",
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    if (!loginData.email || !loginData.password) {
+      toast.warn('Please fill in both email and password.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${api}api/user/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(loginData),
       });
-      setLoading(false)
 
-      return
-    }
-    if (errors?.length === 0) {
-      const ftch = await fetch(`${api}api/user`, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        method: "POST",
-        body: JSON.stringify(signupData)
-      })
-      const response = await ftch.json()
-      if (response.success) {
-        toast.success('User registered successfully ', {
-          position: "bottom-center",
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          theme: "dark",
-        });
-        localStorage.setItem("userInfo", JSON.stringify(response.data))
+      const data = await res.json();
+
+      if (data.success && data.data) {
+        localStorage.setItem('userInfo', JSON.stringify(data.data));
+        setUser(data.data);
+        toast.success(`Welcome back, ${data.data.name}!`);
         navigate('/chat');
       } else {
-        localStorage.removeItem("userInfo")
-        toast.error(response.message, {
-          position: "bottom-center",
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          theme: "dark",
-        });
+        toast.error(data.message || 'Invalid login credentials.');
       }
-      setLoading(false)
-    } else {
-      setErrors(validationErrors)
-      setLoading(false)
+    } catch (error) {
+      console.error(error);
+      toast.error('Unable to connect to the server. Please check your backend.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignup = async (e) => {
+    e.preventDefault();
+    if (!signupData.name || !signupData.email || !signupData.password) {
+      toast.warn('Please fill in all required fields.');
+      return;
     }
 
-  }
-
-  
-
-
-  useEffect(() => {
-    if (user) {
-      navigate("/chat")
+    if (signupData.password.length < 6) {
+      toast.error('Password must be at least 6 characters long.');
+      return;
     }
-  }, [navigate,user])
 
-  const handleImage = async(img)=>{
-    const url = await postImage(img)
-    setSignupData(prev => ({ ...prev, "pic": url}))
-  }
+    if (signupData.password !== signupData.confirm) {
+      toast.error('Passwords do not match.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const payload = {
+        name: signupData.name,
+        email: signupData.email,
+        password: signupData.password,
+        ...(avatarUrl ? { pic: avatarUrl } : {}),
+      };
+
+      const res = await fetch(`${api}api/user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (data.success && data.data) {
+        localStorage.setItem('userInfo', JSON.stringify(data.data));
+        setUser(data.data);
+        toast.success('Account created successfully!');
+        navigate('/chat');
+      } else {
+        toast.error(data.message || 'Registration failed.');
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Registration failed. Please check connection.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Demo recruiter login quick fill
+  const handleDemoRecruiterLogin = (email, password) => {
+    setLoginData({ email, password });
+    setIsLoginTab(true);
+    toast.info(`Demo credentials loaded (${email}). Click 'Sign In' or hit Enter!`);
+  };
 
   return (
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden">
+      {/* Decorative ambient background glows */}
+      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-brand-500/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none" />
 
-   !user&& <main className='bg-center bg-blend-darken bg-opacity-80 min-h-[100svh] sm:py-5 '>
-      <h1 className='container p-3 m-auto w-full md:w-[80%] text-6xl text-center bg-zinc-900 bg-opacity-70 backdrop-blur-[5px] text-white mb-5 rounded-lg'>v-chat</h1>
-      <div className="container m-auto w-[18rem] sm:w-[30rem] bg-zinc-900 border bg-opacity-70 backdrop-blur-[3px] text-white rounded-lg py-10 overflow-hidden relative ">
+      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center z-10">
+        
+        {/* Left Hero & Highlights (Resume Appeal) */}
+        <div className="lg:col-span-6 space-y-6 text-center lg:text-left">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/30 text-brand-300 text-xs font-semibold uppercase tracking-wider">
+            <BsLightningCharge className="text-brand-400" /> Real-Time MERN Architecture
+          </div>
 
-        <div className="buttons text-center space-x-14 mb-6 text-xl">
-          <button onClick={() => setlogin(true)} className={`px-2 py-1 relative z-10 after:rounded-2xl after:-z-10 after:absolute after:top-0 after:left-0  ${login ? "after:translate-x-0 text-black font-bold after:w-full" : "after:translate-x-[115px] after:w-[95px] text-white"} after:transition-all after:ease-out after:duration-500   after:h-full  after:bg-white focus:border-none `}>
-            Login
-          </button>
-          <button className={`${login ? "text-white" : "text-black font-bold"} relative z-20 px-2 py-1 focus:border-none `} onClick={() => setlogin(false)}>Sign up</button>
+          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
+            Connect Instantly with <span className="bg-gradient-to-r from-brand-400 via-indigo-300 to-cyan-400 bg-clip-text text-transparent">V-Chat</span>
+          </h1>
+
+          <p className="text-slate-300 text-base sm:text-lg leading-relaxed max-w-lg mx-auto lg:mx-0">
+            A full-stack communication platform powered by React 18, Node.js, Express, MongoDB, and persistent WebSocket channels for seamless private & group conversations.
+          </p>
+
+          {/* Feature Badges */}
+          <div className="grid grid-cols-2 gap-3 pt-2 max-w-md mx-auto lg:mx-0 text-left">
+            <div className="glass-card p-3 rounded-xl flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-indigo-500/20 text-indigo-400">
+                <BsChatDotsFill size={18} />
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">Low-Latency</p>
+                <p className="text-sm font-semibold text-white">Socket.IO Rooms</p>
+              </div>
+            </div>
+
+            <div className="glass-card p-3 rounded-xl flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-cyan-500/20 text-cyan-400">
+                <BsPeopleFill size={18} />
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">Collaboration</p>
+                <p className="text-sm font-semibold text-white">Group Channels</p>
+              </div>
+            </div>
+
+            <div className="glass-card p-3 rounded-xl flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400">
+                <BsShieldLock size={18} />
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">Security</p>
+                <p className="text-sm font-semibold text-white">JWT & Bcrypt</p>
+              </div>
+            </div>
+
+            <div className="glass-card p-3 rounded-xl flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-purple-500/20 text-purple-400">
+                <FaUserAstronaut size={18} />
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">Portfolio Ready</p>
+                <p className="text-sm font-semibold text-white">Dockerized Stack</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Recruiter Quick Test Hint */}
+          <div className="pt-2 text-xs text-slate-400 flex flex-wrap gap-2 items-center justify-center lg:justify-start">
+            <span>Recruiter Quick Fill:</span>
+            <button
+              type="button"
+              onClick={() => handleDemoRecruiterLogin('guest@vchat.dev', 'GuestPass123!')}
+              className="px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-brand-300 border border-slate-700 transition-colors"
+            >
+              Load Demo Account
+            </button>
+          </div>
         </div>
 
-        <div className={` form text-center flex gap-14 sm:gap-[20rem]   ${!login ? "translate-x-[-320px] sm:translate-x-[-561px]" : "translate-x-[7px] sm:translate-x-[79px]"} transition-left duration-500`}>
-          <form onSubmit={handleLogin} className='w-[17rem] sm:w-[20rem] shrink-0  space-y-10 ml'>
-
-            <div>
-              <input type='email' className='peer focus:outline-none bg-transparent border-b-2 border-white  w-full' name='email' value={loginData.email || ""} placeholder='email' onChange={getLoginData} required />
+        {/* Right Form Container */}
+        <div className="lg:col-span-6 w-full max-w-md mx-auto">
+          <div className="glass-panel rounded-2xl p-6 sm:p-8 shadow-2xl relative">
+            
+            {/* Tab switch header */}
+            <div className="grid grid-cols-2 p-1 bg-slate-900/80 rounded-xl border border-white/10 mb-6">
+              <button
+                type="button"
+                onClick={() => setIsLoginTab(true)}
+                className={`py-2 text-sm font-semibold rounded-lg transition-all ${
+                  isLoginTab
+                    ? 'bg-brand-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsLoginTab(false)}
+                className={`py-2 text-sm font-semibold rounded-lg transition-all ${
+                  !isLoginTab
+                    ? 'bg-brand-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Create Account
+              </button>
             </div>
 
+            {/* Login Form */}
+            {isLoginTab ? (
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">Email Address</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={loginData.email}
+                    onChange={handleLoginChange}
+                    placeholder="you@example.com"
+                    required
+                    className="w-full px-4 py-2.5 rounded-xl glass-input text-sm placeholder:text-slate-500 transition-all"
+                  />
+                </div>
 
-            <div className='relative'>
-              <input type={loginPassView ? 'text' : `password`} className='peer focus:outline-none bg-transparent border-b-2 pr-10 border-white w-full' name='password' value={loginData.password || ""} placeholder='password' onChange={getLoginData} required />
-              <span onClick={() => setLoginPassView(prev => !prev)} className='absolute right-0 bottom-2 select-none cursor-pointer'>{loginPassView ? <GoEye /> : <GoEyeClosed />}</span>
-            </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">Password</label>
+                  <div className="relative">
+                    <input
+                      type={loginPassView ? "text" : "password"}
+                      name="password"
+                      value={loginData.password}
+                      onChange={handleLoginChange}
+                      placeholder="••••••••"
+                      required
+                      className="w-full px-4 py-2.5 rounded-xl glass-input text-sm placeholder:text-slate-500 transition-all pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setLoginPassView(!loginPassView)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                    >
+                      {loginPassView ? <GoEyeClosed size={18} /> : <GoEye size={18} />}
+                    </button>
+                  </div>
+                </div>
 
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold shadow-lg shadow-brand-500/25 transition-all disabled:opacity-50 text-sm flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    "Sign In"
+                  )}
+                </button>
+              </form>
+            ) : (
+              /* Signup Form */
+              <form onSubmit={handleSignup} className="space-y-3.5">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={signupData.name}
+                    onChange={handleSignupChange}
+                    placeholder="Alex Morgan"
+                    required
+                    className="w-full px-4 py-2.5 rounded-xl glass-input text-sm placeholder:text-slate-500"
+                  />
+                </div>
 
-            <button className="button border border-gray-900 rounded-full bg-zinc-900 w-full py-2 grid place-items-center">
-              {loginLoading ? <div className='h-5 w-5 rounded-[50%] border border-white border-t-black animate-spin'></div> : "Log in"}
-            </button>
-          </form>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={signupData.email}
+                    onChange={handleSignupChange}
+                    placeholder="alex@example.com"
+                    required
+                    className="w-full px-4 py-2.5 rounded-xl glass-input text-sm placeholder:text-slate-500"
+                  />
+                </div>
 
-          <form onSubmit={handleSignup} className='w-[17rem] sm:w-[20rem] mx-auto shrink-0 space-y-10 select-none'>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Password</label>
+                  <div className="relative">
+                    <input
+                      type={passwordView ? "text" : "password"}
+                      name="password"
+                      value={signupData.password}
+                      onChange={handleSignupChange}
+                      placeholder="Minimum 6 characters"
+                      required
+                      className="w-full px-4 py-2.5 rounded-xl glass-input text-sm placeholder:text-slate-500 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setPasswordView(!passwordView)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                    >
+                      {passwordView ? <GoEyeClosed size={18} /> : <GoEye size={18} />}
+                    </button>
+                  </div>
+                </div>
 
-            <div>
-              <input type='text' className='peer focus:outline-none bg-transparent border-b-2 border-white  w-full' name='name' value={signupData.name || ""} placeholder='username' onChange={getSignupData} />
-            </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Confirm Password</label>
+                  <div className="relative">
+                    <input
+                      type={confirmView ? "text" : "password"}
+                      name="confirm"
+                      value={signupData.confirm}
+                      onChange={handleSignupChange}
+                      placeholder="Repeat your password"
+                      required
+                      className="w-full px-4 py-2.5 rounded-xl glass-input text-sm placeholder:text-slate-500 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setConfirmView(!confirmView)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                    >
+                      {confirmView ? <GoEyeClosed size={18} /> : <GoEye size={18} />}
+                    </button>
+                  </div>
+                </div>
 
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">Profile Photo (Optional)</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    className="w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700 cursor-pointer"
+                  />
+                  {picLoading && <p className="text-xs text-brand-400 mt-1">Uploading avatar...</p>}
+                </div>
 
-            <div>
-              <input type='email' className='peer focus:outline-none bg-transparent border-b-2 border-white w-full' name='email' value={signupData.email || ""} placeholder='email' onChange={getSignupData} />
-            </div>
+                <button
+                  type="submit"
+                  disabled={loading || picLoading}
+                  className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold shadow-lg shadow-brand-500/25 transition-all disabled:opacity-50 text-sm flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    "Create Account"
+                  )}
+                </button>
+              </form>
+            )}
 
-            <div className='relative'>
-              <input type={passwordView ? "text" : "password"} className='peer focus:outline-none bg-transparent border-b-2 pr-10 border-white w-full' name='password' value={signupData.password || ""} placeholder='password' onChange={getSignupData} />
-              <span onClick={() => setPasswordView(prev => !prev)} className='text-white absolute right-0 bottom-2 cursor-pointer '>{passwordView ? <GoEye /> : <GoEyeClosed />}</span>
-            </div>
-
-            {errors.length > 0 && <div className='text-red-500'>
-              Password must contain at least 8 characters long, one uppercase letter, and one special character.
-            </div>}
-
-            <div className='relative'>
-              <input type={confirmView ? 'text' : `password`} className='peer focus:outline-none bg-transparent border-b-2 pr-10 border-white w-full' name='confirm' value={signupData.confirm || ""} placeholder='confirm password' onChange={getSignupData} />
-              <span onClick={() => setConfirmView(prev => !prev)} className='absolute right-0 bottom-2 select-none cursor-pointer'>{confirmView ? <GoEye /> : <GoEyeClosed />}</span>
-            </div>
-
-
-
-            <div className='text-start'>
-              <label className='text-base '>Upload Your Profile image</label>
-              <input type='file' className='peer focus:outline-none bg-transparent border-b-2 border-white w-full text-base ' name='profile' value={signupData.profile} placeholder='Upload Your profile image' accept='image/*' onChange={(e) => handleImage(e.target.files[0])} />
-            </div>
-
-
-            <button className="button border border-gray-900 rounded-full bg-zinc-900 w-full py-2 grid place-items-center">
-              {loading ? <div className='h-5 w-5 rounded-[50%] border border-white border-t-black animate-spin'></div> : "Sign up"}
-            </button>
-          </form>
+          </div>
         </div>
+
       </div>
-      <span className='text-sm'><ToastContainer
-        position="bottom-center"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="dark"
-      /></span>
-    </main>
-  )
-}
+    </div>
+  );
+};
 
-export default Home
+export default Home;
