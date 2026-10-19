@@ -141,4 +141,12 @@ dist
 
 # Uploaded user media
 uploads/
-backend/uploads/
+backend/uploads/
+
+# Firebase & Sensitive credentials
+*serviceAccountKey*.json
+serviceAccount*.json
+*.pem
+*.key
+*.cert
+

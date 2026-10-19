@@ -11,9 +11,6 @@ import cors from "cors";
 import { Server } from "socket.io";
 import path from "path";
 import { fileURLToPath } from "url";
-import { messaging } from "./firebase.js";
-import { protect } from "./middleware/authMiddleware.js";
-import { User } from "./models/userModel.js";
 import { Message } from "./models/messageModel.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -41,7 +38,7 @@ app.use(
       ) {
         callback(null, true);
       } else {
-        callback(null, true); // Permissive in deployment if behind reverse proxy
+        callback(null, true); // Permissive in deployment behind reverse proxies
       }
     },
     credentials: true,
@@ -65,46 +62,11 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-
 // API Routes
 app.use("/api/user", userRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/message", messageRouter);
 app.use("/api/upload", uploadRouter);
-
-// Push Notification Endpoint (Firebase)
-app.post("/send-notification", protect, async (req, res) => {
-  const { title, body, userId, chat } = req.body;
-
-  if (!title || !body || !userId) {
-    return res.status(400).json({ success: false, message: "Missing required notification fields" });
-  }
-
-  try {
-    const user = await User.findById(userId);
-
-    if (!user || !user.fcmToken) {
-      return res.status(200).json({ success: false, message: "No FCM token registered for recipient" });
-    }
-
-    const message = {
-      notification: { title, body },
-      android: {
-        notification: { icon: "ic_notification" },
-      },
-      data: {
-        chat: JSON.stringify(chat || {}),
-      },
-      token: user.fcmToken,
-    };
-
-    const response = await messaging.send(message);
-    res.status(200).json({ success: true, message: "Notification sent successfully", response });
-  } catch (error) {
-    console.error("[Notification Error]:", error.message);
-    res.status(500).json({ success: false, message: "Failed to send notification", error: error.message });
-  }
-});
 
 // Production Static Assets
 if (process.env.NODE_ENV === "production") {
@@ -180,12 +142,24 @@ io.on("connection", (socket) => {
     }
   });
 
+  // Seen feature handlers
   socket.on("message_seen", ({ messageId, seenBy, chat }) => {
     if (chat?.users && Array.isArray(chat.users)) {
       chat.users.forEach((user) => {
         const uId = typeof user === "object" ? user._id : user;
         if (uId && uId !== seenBy) {
           socket.in(uId).emit("message_seen_ack", { messageId, seenBy });
+        }
+      });
+    }
+  });
+
+  socket.on("last message seen", ({ chat, seenBy }) => {
+    if (chat?.users && Array.isArray(chat.users)) {
+      chat.users.forEach((user) => {
+        const uId = typeof user === "object" ? user._id : user;
+        if (uId && uId !== seenBy) {
+          socket.in(uId).emit("lastmsg seen ack", { seenBy });
         }
       });
     }
@@ -206,5 +180,11 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     // Socket disconnected cleanly
+  });
+
+  socket.off("setup", (userData) => {
+    if (userData?._id) {
+      socket.leave(userData._id);
+    }
   });
 });
