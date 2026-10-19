@@ -1,11 +1,13 @@
 import express from "express";
+import mongoose from "mongoose";
 import { userRouter } from "./routes/userRoutes.js";
+import { chatRouter } from "./routes/chatRoutes.js";
+import { messageRouter } from "./routes/messageRoutes.js";
+import { uploadRouter } from "./routes/uploadRoutes.js";
 import { connectDb } from "./connection/connection.js";
 import { configDotenv } from "dotenv";
 import { errorHandler, notfound } from "./middleware/errorMiddleware.js";
 import cors from "cors";
-import { chatRouter } from "./routes/chatRoutes.js";
-import { messageRouter } from "./routes/messageRoutes.js";
 import { Server } from "socket.io";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -14,10 +16,16 @@ import { protect } from "./middleware/authMiddleware.js";
 import { User } from "./models/userModel.js";
 import { Message } from "./models/messageModel.js";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 configDotenv();
 connectDb();
 
 const app = express();
+
+// Serve local uploaded media statically
+app.use("/uploads", express.static(path.resolve(__dirname, "uploads")));
 
 const clientOrigin = process.env.CLIENT_URL || "http://localhost:5173";
 
@@ -42,20 +50,27 @@ app.use(
 
 app.use(express.json());
 
-// System Health Check
+// System Health Check (Database-Aware)
 app.get("/api/health", (req, res) => {
-  res.status(200).json({
-    status: "healthy",
+  const isDbConnected = mongoose.connection.readyState === 1;
+  const status = isDbConnected ? "healthy" : "degraded";
+  const statusCode = isDbConnected ? 200 : 503;
+
+  res.status(statusCode).json({
+    status,
+    database: isDbConnected ? "connected" : "disconnected",
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || "development",
   });
 });
 
+
 // API Routes
 app.use("/api/user", userRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/message", messageRouter);
+app.use("/api/upload", uploadRouter);
 
 // Push Notification Endpoint (Firebase)
 app.post("/send-notification", protect, async (req, res) => {
@@ -92,9 +107,6 @@ app.post("/send-notification", protect, async (req, res) => {
 });
 
 // Production Static Assets
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 if (process.env.NODE_ENV === "production") {
   const frontendDistPath = path.resolve(__dirname, "../frontend/dist");
   app.use(express.static(frontendDistPath));

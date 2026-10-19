@@ -6,7 +6,7 @@ FROM node:20-alpine AS frontend-builder
 WORKDIR /app/frontend
 
 COPY frontend/package*.json ./
-RUN npm ci
+RUN npm install
 
 COPY frontend/ ./
 RUN npm run build
@@ -23,16 +23,19 @@ ENV PORT=5000
 
 # Install production dependencies
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm install --omit=dev
 
 # Copy backend source
 COPY backend/ ./backend/
 
 # Copy built frontend from Stage 1 into server static directory
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
+# Ensure uploads directory exists and is owned by non-root node user
+RUN mkdir -p /app/backend/uploads && chown -R node:node /app/backend/uploads
 
 EXPOSE 5000
 
 USER node
 
 CMD ["node", "backend/server.js"]
+

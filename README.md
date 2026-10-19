@@ -39,7 +39,6 @@ graph TD
         Routes["API Router (/api/user, /api/chat, /api/message, /api/health)"]
         SocketServer["Socket.IO Server (Rooms & Events)"]
         AuthMiddleware["JWT Protection Middleware"]
-        FBM["Firebase Notification Service (Optional Fallback)"]
     end
 
     subgraph Persistence["Storage & External"]
@@ -54,7 +53,6 @@ graph TD
     Routes --> AuthMiddleware
     AuthMiddleware --> Mongo
     SocketServer <--> Mongo
-    Routes -.-> FBM
     UI -.-> Cloudinary
 ```
 
@@ -158,8 +156,8 @@ Access the app at: **`http://localhost:5000`**
 
 ## 🔒 Security & Sanitization
 
-- **Credential Hygiene**: All private API keys and Firebase service credentials are fully externalized to environment variables and stripped from Git history.
-- **Safe Fallbacks**: If external notification providers (Firebase) are omitted, the application degrades gracefully without crashes.
+- **Credential Hygiene**: All private API keys and Firebase service credentials have been completely eradicated from Git history and decoupled from runtime.
+- **Network Isolation**: The MongoDB container in Docker is bound exclusively to an internal Docker bridge network (`vchat-network`) with no host ports exposed externally.
 - **Sanitized Payloads**: Passwords are excluded from user query projections (`.select("-password")`).
 - **Injection Protection**: Queries utilize parameterized Mongoose models with regex escaping on user search inputs.
 

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { seedDemoData } from "../config/seedDemo.js";
 
 export const connectDb = async () => {
     const mongoUri = process.env.MONGODB_URI;
@@ -11,6 +12,7 @@ export const connectDb = async () => {
     try {
         const conn = await mongoose.connect(mongoUri);
         console.log(`[Database] MongoDB Connected: ${conn.connection.host}`);
+        await seedDemoData();
     } catch (error) {
         console.error(`[Database] Connection Error: ${error.message}`);
     }

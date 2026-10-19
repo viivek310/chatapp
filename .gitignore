@@ -76,6 +76,9 @@ web_modules/
 .env
 .env.*
 *.env
+env.local
+*.env.local
+*.local
 !.env.example
 !*.env.example
 
@@ -135,4 +138,7 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
-    
+
+# Uploaded user media
+uploads/
+backend/uploads/
