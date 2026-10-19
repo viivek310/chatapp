@@ -1,4 +1,5 @@
 import React from 'react';
+import { Avatar } from './common/Avatar';
 
 function SearchUser({ chat, handleClick }) {
   return (
@@ -6,15 +7,11 @@ function SearchUser({ chat, handleClick }) {
       onClick={handleClick}
       className="p-3 rounded-xl bg-slate-900/50 hover:bg-brand-600/20 border border-white/5 hover:border-brand-500/30 transition-all duration-200 flex items-center gap-3 cursor-pointer group shadow-sm"
     >
-      <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-800 border border-white/10 shrink-0 flex items-center justify-center text-white font-bold text-xs">
-        {chat?.pic ? (
-          <img className="h-full w-full object-cover" src={chat.pic} alt={chat.name} />
-        ) : (
-          <div className="bg-gradient-to-tr from-brand-600 to-indigo-600 w-full h-full flex items-center justify-center">
-            {chat?.name?.[0]?.toUpperCase() || "U"}
-          </div>
-        )}
-      </div>
+      <Avatar
+        src={chat?.pic}
+        name={chat?.name || "User"}
+        className="w-10 h-10"
+      />
 
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-xs text-white group-hover:text-brand-300 transition-colors truncate">

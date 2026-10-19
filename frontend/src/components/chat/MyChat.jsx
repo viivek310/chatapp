@@ -3,6 +3,7 @@ import { useUser } from '../../../context/userContext';
 import { getSender, getSenderInfo, formatMessageTime } from '../../config/util';
 import { FaPlus, FaUsers } from "react-icons/fa";
 import { BsChatSquareText } from "react-icons/bs";
+import { Avatar } from '../common/Avatar';
 import GroupModal from '../GroupModal';
 import { useNavigate } from 'react-router-dom';
 
@@ -122,19 +123,13 @@ function MyChat() {
               >
                 {/* Avatar */}
                 <div className="relative shrink-0">
-                  <div className="w-11 h-11 rounded-xl overflow-hidden bg-slate-800 border border-white/10 flex items-center justify-center text-white font-bold text-sm">
-                    {chat.isGroupChat ? (
-                      <div className="bg-gradient-to-tr from-cyan-600 to-indigo-600 w-full h-full flex items-center justify-center text-white">
-                        <FaUsers size={18} />
-                      </div>
-                    ) : avatarSrc ? (
-                      <img src={avatarSrc} alt={chatTitle} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="bg-gradient-to-tr from-brand-600 to-indigo-600 w-full h-full flex items-center justify-center text-white">
-                        {chatTitle?.[0]?.toUpperCase() || "U"}
-                      </div>
-                    )}
-                  </div>
+                  {chat.isGroupChat ? (
+                    <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-cyan-600 to-indigo-600 flex items-center justify-center text-white border border-white/10 shadow-sm shadow-cyan-500/10">
+                      <FaUsers size={18} />
+                    </div>
+                  ) : (
+                    <Avatar src={avatarSrc} name={chatTitle} className="w-11 h-11" />
+                  )}
                 </div>
 
                 {/* Info */}

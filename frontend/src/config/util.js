@@ -27,29 +27,32 @@ export const formatMessageTime = (dateString) => {
 };
 
 export const postImage = async (img) => {
-  const cloud = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-  if (!cloud) {
-    console.warn("Cloudinary cloud name is not configured.");
+  if (!img) return null;
+
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+  if (!allowedTypes.includes(img.type)) {
+    console.warn("Unsupported image type:", img.type);
     return null;
   }
 
-  if (img && (img.type === "image/jpeg" || img.type === "image/png" || img.type === "image/webp")) {
-    const data = new FormData();
-    data.append("file", img);
-    data.append("upload_preset", "chat-app");
-    data.append("cloud_name", cloud);
-    
-    try {
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/image/upload`, {
-        method: "POST",
-        body: data,
-      });
-      const urlData = await res.json();
-      return urlData.secure_url;
-    } catch (err) {
-      console.error("Cloudinary upload failed:", err);
+  const data = new FormData();
+  data.append("image", img);
+
+  try {
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: data,
+    });
+
+    const resData = await res.json();
+    if (resData.success && resData.url) {
+      return resData.url;
+    } else {
+      console.error("Local upload error:", resData.message);
       return null;
     }
+  } catch (err) {
+    console.error("Local upload failed:", err);
+    return null;
   }
-  return null;
 };

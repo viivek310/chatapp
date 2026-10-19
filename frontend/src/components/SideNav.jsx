@@ -101,7 +101,7 @@ function SideNav({ open, setOpen }) {
       {/* Slide-out Drawer */}
       <aside
         ref={sideNavRef}
-        className={`fixed top-0 left-0 h-screen w-80 sm:w-96 glass-panel border-r border-white/10 z-40 p-5 shadow-2xl flex flex-col transition-transform duration-300 ease-out ${
+        className={`fixed top-0 left-0 h-screen w-80 sm:w-96 bg-[#0c1220] border-r border-white/10 z-40 p-5 shadow-2xl flex flex-col transition-transform duration-300 ease-out ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >

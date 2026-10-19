@@ -45,7 +45,7 @@ const Home = () => {
         setAvatarUrl(url);
         toast.success('Avatar uploaded successfully!');
       } else {
-        toast.info('Default avatar will be used (Cloudinary optional).');
+        toast.error('Image upload failed. Please select a valid JPEG, PNG, or WEBP image.');
       }
     } catch (err) {
       console.error(err);

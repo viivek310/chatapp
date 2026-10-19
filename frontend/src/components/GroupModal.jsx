@@ -92,7 +92,7 @@ function GroupModal({ groupModal }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md select-none">
-      <div className="w-full max-w-lg glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl relative border border-white/10 animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-full max-w-lg bg-[#0e1424] rounded-3xl p-6 sm:p-8 shadow-2xl relative border border-white/10 animate-in fade-in zoom-in-95 duration-150">
         <button
           onClick={groupModal}
           className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"

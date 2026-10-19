@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { RxCross2 } from "react-icons/rx";
 import { FiCamera } from "react-icons/fi";
 import { postImage } from '../config/util';
+import { Avatar } from './common/Avatar';
 import { useUser } from '../../context/userContext';
 import { toast } from 'react-toastify';
 
@@ -38,7 +39,7 @@ function Profile({ setProfileOpen, data }) {
         setImage(url);
         await updateProfileRequest(name, url);
       } else {
-        toast.info("Cloudinary upload optional or failed.");
+        toast.error("Image upload failed. Please try a valid JPEG or PNG (max 5MB).");
       }
     } catch (err) {
       console.error(err);
@@ -85,7 +86,7 @@ function Profile({ setProfileOpen, data }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
       <div
         ref={profileRef}
-        className="w-full max-w-md glass-panel rounded-3xl p-6 sm:p-8 shadow-2xl relative border border-white/10 flex flex-col items-center animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-md bg-[#0e1424] rounded-3xl p-6 sm:p-8 shadow-2xl relative border border-white/10 flex flex-col items-center animate-in fade-in zoom-in-95 duration-150"
       >
         <button
           onClick={setProfileOpen}
@@ -97,15 +98,12 @@ function Profile({ setProfileOpen, data }) {
 
         {/* Profile Avatar with Camera Trigger */}
         <div className="relative mb-5 group">
-          <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl overflow-hidden bg-slate-800 border-2 border-white/10 shadow-xl flex items-center justify-center text-white font-bold text-3xl">
-            {image ? (
-              <img src={image} alt={name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="bg-gradient-to-tr from-brand-600 to-indigo-600 w-full h-full flex items-center justify-center text-white">
-                {name?.[0]?.toUpperCase() || "U"}
-              </div>
-            )}
-          </div>
+          <Avatar
+            src={image}
+            name={name}
+            className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl"
+            textClassName="text-3xl"
+          />
 
           {isCurrentUser && (
             <>

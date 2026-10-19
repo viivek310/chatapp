@@ -6,6 +6,7 @@ import { useUser } from '../../context/userContext';
 import { useSocket } from '../context/SocketContext';
 import { IoChevronDown, IoNotificationsOutline, IoLogOutOutline, IoPersonOutline } from "react-icons/io5";
 import { BsChatDotsFill } from "react-icons/bs";
+import { Avatar } from './common/Avatar';
 
 function Navbar({ open, setUser }) {
   const [sideNavOpen, setSideNavOpen] = useState(false);
@@ -180,17 +181,12 @@ function Navbar({ open, setUser }) {
             onClick={() => setContextMenuOpen((prev) => !prev)}
             className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-white/10 transition-all"
           >
-            <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-tr from-brand-600 to-indigo-600 flex items-center justify-center text-xs font-bold text-white shrink-0">
-              {user?.pic ? (
-                <img
-                  src={user.pic}
-                  alt={user?.name || "User"}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                user?.name?.[0]?.toUpperCase() || "U"
-              )}
-            </div>
+            <Avatar
+              src={user?.pic}
+              name={user?.name || "User"}
+              className="w-8 h-8 rounded-full"
+              textClassName="text-xs"
+            />
             <span className="text-xs sm:text-sm font-medium text-slate-200 hidden md:inline max-w-[120px] truncate">
               {user?.name}
             </span>

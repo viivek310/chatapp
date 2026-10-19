@@ -6,6 +6,7 @@ import { IoMdArrowRoundBack, IoMdMore } from "react-icons/io";
 import { IoSend } from "react-icons/io5";
 import { BsChatDots, BsShieldCheck } from "react-icons/bs";
 import GroupUpdateModal from '../GroupUpdateModal';
+import { Avatar } from '../common/Avatar';
 import { toast } from 'react-toastify';
 
 function ChatBox({ open, setUser }) {
@@ -182,15 +183,11 @@ function ChatBox({ open, setUser }) {
                 className="flex items-center gap-3 cursor-pointer group"
               >
                 <div className="relative">
-                  <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-800 border border-white/10 flex items-center justify-center text-white font-bold text-sm">
-                    {otherUser?.pic ? (
-                      <img src={otherUser.pic} alt={chatTitle} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="bg-gradient-to-tr from-brand-600 to-indigo-600 w-full h-full flex items-center justify-center">
-                        {chatTitle?.[0]?.toUpperCase() || "C"}
-                      </div>
-                    )}
-                  </div>
+                  <Avatar
+                    src={otherUser?.pic}
+                    name={chatTitle}
+                    className="w-10 h-10"
+                  />
                   {!selectedChat.isGroupChat && (
                     <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-slate-900" />
                   )}
@@ -258,15 +255,16 @@ function ChatBox({ open, setUser }) {
                     className={`flex items-end gap-2 ${isMyMessage ? "justify-end" : "justify-start"}`}
                   >
                     {!isMyMessage && (
-                      <div className="w-7 h-7 rounded-lg overflow-hidden bg-slate-800 border border-white/10 shrink-0 text-xs flex items-center justify-center text-white">
+                      <div className="w-7 h-7 shrink-0">
                         {showAvatar ? (
-                          m?.sender?.pic ? (
-                            <img src={m.sender.pic} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            m?.sender?.name?.[0]?.toUpperCase() || "U"
-                          )
+                          <Avatar
+                            src={m?.sender?.pic}
+                            name={m?.sender?.name || "U"}
+                            className="w-7 h-7"
+                            textClassName="text-[10px]"
+                          />
                         ) : (
-                          <div className="w-7" />
+                          <div className="w-7 h-7" />
                         )}
                       </div>
                     )}
