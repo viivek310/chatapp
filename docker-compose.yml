@@ -14,8 +14,6 @@ services:
         required: false
       - path: .env
         required: false
-    ports:
-      - "${PORT:-5000}:5000"
     volumes:
       - app-uploads:/app/backend/uploads
     environment:
@@ -52,8 +50,19 @@ services:
           memory: 256M
         reservations:
           memory: 64M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
+      # Router
+      - "traefik.http.routers.vchat.rule=Host(`${DOMAIN:-chat.yourdomain.com}`)"
+      - "traefik.http.routers.vchat.entrypoints=websecure"
+      - "traefik.http.routers.vchat.tls=true"
+      - "traefik.http.routers.vchat.tls.certresolver=letsencrypt"
+      # Service
+      - "traefik.http.services.vchat.loadbalancer.server.port=5000"
     networks:
       - vchat-network
+      - traefik-network
 
   mongo:
     image: mongo:7.0
@@ -105,6 +114,9 @@ services:
 networks:
   vchat-network:
     driver: bridge
+  traefik-network:
+    external: true
+
 
 volumes:
   mongo-data:
